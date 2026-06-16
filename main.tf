@@ -11,3 +11,9 @@ module "dns" {
   pihole_password = var.pihole_password
   network_name = docker_network.tailscale_docker_net.name
 }
+
+module "tailscale_dns_config" {
+  source = "./tailscale-dns"
+  pihole_ip = module.dns.pihole_ip
+  depends_on = [module.router, module.dns]
+}
