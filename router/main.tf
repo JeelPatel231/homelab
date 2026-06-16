@@ -1,0 +1,73 @@
+locals {
+  router_ip   = cidrhost(var.module_subnet, 0)
+  init_script = <<-EOT
+  #!/bin/sh
+
+  # Apply iptables rules at runtime
+  iptables -A FORWARD -i tailscale0 -o eth0 -j ACCEPT
+  iptables -A FORWARD -i eth0 -o tailscale0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+  /usr/local/bin/containerboot
+  EOT
+}
+
+resource "tailscale_tailnet_key" "docker_key" {
+  reusable      = true
+  ephemeral     = false
+  preauthorized = true
+  description   = "Docker Routing Container Key"
+  tags = ["tag:router"]
+}
+
+resource "docker_volume" "tailscale_auth_state" {
+  name = "tailscale_auth_state"
+}
+
+resource "docker_container" "tailscale_packet_router" {
+  name     = "tailscale-router"
+  image    = "tailscale/tailscale:latest"
+  hostname = "tailscale-router"
+
+  env = [
+    # IPRange is always a subset of subnet, and we only expose the cidr range which is usable.
+    "TS_EXTRA_ARGS=--advertise-routes=${var.advertise_range}",
+    "TS_STATE_DIR=/var/lib/tailscale",
+    "TS_USERSPACE=false",
+    "TS_AUTHKEY=${tailscale_tailnet_key.docker_key.key}"
+  ]
+
+  command = ["sh", "/init.sh"]
+
+  restart = "always"
+
+  capabilities {
+    add = ["CAP_NET_ADMIN"]
+  }
+
+  devices {
+    host_path      = "/dev/net/tun"
+    container_path = "/dev/net/tun"
+    permissions    = "rwm"
+  }
+
+  upload {
+    content = local.init_script
+    file    = "/init.sh"
+  }
+
+  # we persist state so when container can reauth as the same instance
+  # we dont use a host mount in workdir as the state is internal and we never need to touch it or migrate it
+  volumes {
+    volume_name    = docker_volume.tailscale_auth_state.name
+    container_path = "/var/lib/tailscale"
+  }
+
+  sysctls = {
+    "net.ipv4.ip_forward" = "1"
+  }
+
+  networks_advanced {
+    name = var.network_name
+    ipv4_address = local.router_ip
+  }
+}
