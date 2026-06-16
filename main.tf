@@ -12,6 +12,18 @@ module "dns" {
   network_name = docker_network.tailscale_docker_net.name
 }
 
+module "vaultwarden" {
+  source = "./vaultwarden"
+  rclone_conf_path = "/home/jeel/.config/rclone/rclone.conf"
+  vaultwarden_backup_dir = "/tmp"
+  vaultwarden_data_dir = "${local.workdir}/vaultwarden/data/"
+
+  vaultwarden_domain = "vaultwarden.docker.jeelpa.tel"
+
+  module_subnet = local.vaultwarden_subnet
+  network_name = docker_network.tailscale_docker_net.name
+}
+
 module "tailscale_dns_config" {
   source = "./tailscale-dns"
   pihole_ip = module.dns.pihole_ip

@@ -4,6 +4,7 @@ locals {
   // divide subnet so that each module gets its own logical separation
   router_subnet = cidrsubnet(var.base_cidr, 8, 1) 
   dns_subnet = cidrsubnet(var.base_cidr, 8, 2)
+  vaultwarden_subnet = cidrsubnet(var.base_cidr, 8, 3)
 }
 
 resource "docker_network" "tailscale_docker_net" {

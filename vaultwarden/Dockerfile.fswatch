@@ -1,0 +1,27 @@
+FROM alpine:latest AS fswatch
+
+RUN apk add --no-cache autoconf alpine-sdk
+
+RUN rm /usr/include/sys/inotify.h
+RUN wget https://github.com/emcrisostomo/fswatch/releases/download/1.17.1/fswatch-1.17.1.tar.gz \
+    && tar -xzvf fswatch-1.17.1.tar.gz \
+    && cd fswatch-1.17.1 \
+    && ./configure LDFLAGS="-static" CXXFLAGS="-static-libstdc++ -static-libgcc" \
+    && make \
+    && make install \
+    && rm -rf /fswatch-1.17.1
+
+FROM rclone/rclone:latest
+
+COPY --from=fswatch /usr/local/bin/fswatch /usr/local/bin/fswatch
+COPY --from=fswatch /usr/local/lib/libfswatch.so* /usr/local/lib/
+
+COPY <<EOF /usr/local/bin/startup
+#!/bin/sh
+
+# fswatch only signals creation and deletion of files, not modifications. which is fine for my usecase
+rclone --config /rclone.conf sync /backup gdrive:
+/usr/local/bin/fswatch -o /backup | xargs -n1 -i{} rclone -v --config /rclone.conf sync /backup gdrive:
+EOF
+
+ENTRYPOINT [ "sh", "/usr/local/bin/startup" ]
