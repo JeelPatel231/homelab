@@ -114,6 +114,21 @@ resource "docker_container" "vaultwarden" {
     ipv4_address = local.vaultwarden_ip
   }
 
+  labels {
+    label = "traefik.enable"
+    value = "true"
+  }
+
+  labels {
+    label = "traefik.http.routers.vaultwarden.rule"
+    value = "Host(`vaultwarden.docker.jeelpa.tel`)"
+  }
+
+  labels {
+    label = "traefik.http.routers.whoami.entrypoints"
+    value = "web"
+  }
+
   env = [
     "domain=var.vaultwarden_domain"
   ]
