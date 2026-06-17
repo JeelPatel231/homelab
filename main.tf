@@ -8,6 +8,7 @@ module "router" {
 module "dns" {
   source = "./dns"
   module_subnet = local.dns_subnet
+  docker_socket = var.docker_socket
   pihole_password = var.pihole_password
   network_name = docker_network.tailscale_docker_net.name
 }

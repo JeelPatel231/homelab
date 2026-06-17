@@ -12,7 +12,7 @@ terraform {
 }
 
 provider "docker" {
-  context = "rootless"
+  host = local.docker_host
 }
 
 provider "tailscale" {

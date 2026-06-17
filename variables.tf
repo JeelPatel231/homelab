@@ -25,10 +25,15 @@ variable "base_cidr" {
   default = "10.110.0.0/16"
 }
 
-# variable "docker_host" {
-#   type = string
-#   default = "unix:///var/run/docker.sock"
-# }
+variable "docker_socket" {
+  type = string
+  default = "/var/run/docker.sock"
+}
+
+locals {
+  docker_host = "unix://${var.docker_socket}"
+}
+
 
 # auto generatable
 variable "pihole_password" {

@@ -10,3 +10,7 @@ variable "pihole_password" {
   sensitive = true
   type = string
 }
+
+variable "docker_socket" {
+  type = string
+}
