@@ -30,6 +30,15 @@ module "vaultwarden" {
   network_name = docker_network.tailscale_docker_net.name
 }
 
+
+module "immich" {
+  source = "./immich"
+
+  immich_data = "${local.workdir}/immich/"
+  module_subnet = local.immich_subnet
+  network_name = docker_network.tailscale_docker_net.name
+}
+
 module "tailscale_dns_config" {
   source = "./tailscale-dns"
   pihole_ip = module.dns.pihole_ip
