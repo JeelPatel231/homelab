@@ -121,7 +121,7 @@ resource "docker_container" "vaultwarden" {
 
   labels {
     label = "traefik.http.routers.vaultwarden.rule"
-    value = "Host(`vaultwarden.docker.jeelpa.tel`)"
+    value = "Host(`${var.vaultwarden_domain}`)"
   }
 
   labels {
@@ -130,6 +130,6 @@ resource "docker_container" "vaultwarden" {
   }
 
   env = [
-    "domain=var.vaultwarden_domain"
+    "domain=${var.vaultwarden_domain}"
   ]
 }

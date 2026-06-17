@@ -30,6 +30,28 @@ variable "docker_socket" {
   default = "/var/run/docker.sock"
 }
 
+// this is for auto generating subdomains for .internal and .docker
+variable "root_domain" {
+  type = string
+}
+
+locals {
+  docker_suffix = "docker.${var.root_domain}" // used with traefik
+  internal_suffix = "internal.${var.root_domain}" // used with coredns to directly point to container
+}
+
+variable "porkbun_client_id" {
+  type = string
+}
+
+variable "porkbun_client_secret" {
+  type = string
+}
+
+variable "acme_email" {
+  type = string
+}
+
 locals {
   docker_host = "unix://${var.docker_socket}"
 }

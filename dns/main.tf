@@ -6,19 +6,20 @@ locals {
 
   docker_dns_resolver = "127.0.0.11"
 
+  // TODO: in match argument in docker_suffix, it uses regex and we should escape the '.' 
   coredns_corefile = <<-EOT
-    docker.jeelpa.tel {
+    ${var.docker_suffix} {
         template IN A {
-            match ".*\\.docker\\.jeelpa\\.tel$"
+            match ".*${var.docker_suffix}$"
             answer "{{ .Name }} 60 IN A ${local.traefik_ip}"
             fallthrough
         }
     }
 
-    internal.jeelpa.tel {
+    ${var.internal_suffix} {
       errors
       log
-      rewrite name suffix .internal.jeelpa.tel . answer auto
+      rewrite name suffix .${var.internal_suffix} . answer auto
       forward . ${local.docker_dns_resolver}
 
       cache
@@ -87,6 +88,48 @@ resource "docker_container" "pihole" {
 
 // reverse proxy
 
+locals {
+  traefik_config = <<-EOT
+  log:
+    level: DEBUG
+
+  api:
+    insecure: true
+    dashboard: true
+
+  entryPoints:
+    web:
+      address: ":80"
+
+    websecure:
+      address: ":443"
+      http:
+        tls: {}
+
+  providers:
+    docker:
+      exposedByDefault: false
+      network: ${var.network_name}
+
+  certificatesResolvers:
+    porkbun-resolver:
+      acme:
+        email: ${var.acme_email}
+        storage: /acme.json
+        dnsChallenge:
+          provider: porkbun
+          # Use specific DNS resolvers to speed up propagation checks
+          resolvers:
+            - "1.1.1.1:53"
+    EOT
+  }
+
+resource "local_file" "traefik_config" {
+  filename        = abspath("${path.module}/generated/traefik.yaml")
+  content         = local.traefik_config
+  file_permission = "0600"
+}
+
 data "docker_registry_image" "traefik" {
   name = "traefik:v3.7.5"
 }
@@ -100,18 +143,62 @@ resource "docker_container" "traefik" {
   name = "traefik"
   image = docker_image.traefik.image_id
 
-  volumes { 
+  env = [
+    "PORKBUN_API_KEY=${var.porkbun_client_id}",
+    "PORKBUN_SECRET_API_KEY=${var.porkbun_client_secret}"
+  ]
+
+  labels {
+    label = "traefik.enable"
+    value = "true"
+  }
+
+  labels {
+    label = "traefik.http.routers.dashboard.rule"
+    value = "Host(`${local.dashboard_domain}`)"
+  }
+
+  labels {
+    label = "traefik.http.routers.dashboard.entrypoints"
+    value = "web"
+  }
+
+  labels {
+    label = "traefik.http.routers.dashboard.service"
+    value = "api@internal"
+  }
+
+  # labels {
+  #   label = "traefik.http.routers.dashboard.tls"
+  #   value = "true"
+  # }
+
+  volumes {
     host_path = var.docker_socket
     container_path = "/var/run/docker.sock"
     read_only = true
   }
 
-  command = [
-      "--api.insecure=true",
-      "--providers.docker=true",
-      "--providers.docker.exposedbydefault=false",
-      "--entrypoints.web.address=:80",
-  ]
+  volumes {
+    host_path =  local_file.traefik_config.filename
+    container_path    = "/etc/traefik/traefik.yml"
+    read_only = true
+  }
+
+  # ports {
+  #   internal = 80
+  #   external = 9000
+  # }
+
+  # ports {
+  #   internal = 443
+  #   external = 9443
+  # }
+
+  # ports {
+  #   internal = 8080
+  #   external = 9080
+  # }
 
   networks_advanced {
     name         = var.network_name

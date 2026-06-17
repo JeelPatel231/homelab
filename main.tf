@@ -10,6 +10,11 @@ module "dns" {
   module_subnet = local.dns_subnet
   docker_socket = var.docker_socket
   pihole_password = var.pihole_password
+  porkbun_client_id = var.porkbun_client_id
+  porkbun_client_secret = var.porkbun_client_secret
+  acme_email = var.acme_email
+  internal_suffix = local.internal_suffix
+  docker_suffix = local.docker_suffix
   network_name = docker_network.tailscale_docker_net.name
 }
 
@@ -19,7 +24,7 @@ module "vaultwarden" {
   vaultwarden_backup_dir = "/tmp"
   vaultwarden_data_dir = "${local.workdir}/vaultwarden/data/"
 
-  vaultwarden_domain = "vaultwarden.docker.jeelpa.tel"
+  vaultwarden_domain = "vaultwarden.${local.docker_suffix}"
 
   module_subnet = local.vaultwarden_subnet
   network_name = docker_network.tailscale_docker_net.name
