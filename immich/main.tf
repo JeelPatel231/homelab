@@ -14,8 +14,8 @@ locals {
 
     server_labels = {
       "traefik.enable" = "true",
-      "traefik.http.routers.vaultwarden.rule" = "Host(`${var.immich_domain}`)",
-      "traefik.http.routers.whoami.entrypoints" = "web",
+      "traefik.http.routers.immich.rule" = "Host(`${var.immich_domain}`)",
+      "traefik.http.routers.immich.entrypoints" = "web",
     }
   })
 }
