@@ -10,9 +10,7 @@ locals {
   coredns_corefile = <<-EOT
     ${var.docker_suffix} {
         template IN A {
-            match ".*${var.docker_suffix}$"
             answer "{{ .Name }} 60 IN A ${local.traefik_ip}"
-            fallthrough
         }
     }
 
