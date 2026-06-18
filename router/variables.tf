@@ -9,3 +9,7 @@ variable "advertise_range" {
 variable "module_subnet" {
   type = string
 }
+
+variable "overwrite_tailnet_acl" {
+  type = bool
+}

@@ -63,3 +63,8 @@ variable "pihole_password" {
   sensitive = true
   default = "Password@1"
 }
+
+variable "overwrite_tailnet_acl" {
+  type = bool
+  default = false
+}

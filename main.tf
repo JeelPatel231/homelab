@@ -3,6 +3,7 @@ module "router" {
   module_subnet = local.router_subnet
   advertise_range = local.ip_range
   network_name = docker_network.tailscale_docker_net.name
+  overwrite_tailnet_acl = var.overwrite_tailnet_acl
 }
 
 module "dns" {
@@ -41,6 +42,7 @@ module "immich" {
 }
 
 module "tailscale_dns_config" {
+  count = 0
   source = "./tailscale-dns"
   pihole_ip = module.dns.pihole_ip
   depends_on = [module.router, module.dns]

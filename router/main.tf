@@ -11,12 +11,38 @@ locals {
   EOT
 }
 
+resource "tailscale_acl" "policy" {
+  acl = jsonencode({
+    tagOwners = {
+      "tag:router"    = ["autogroup:admin"]
+    }
+    autoApprovers = {
+      routes = {
+        "${var.advertise_range}": ["tag:router"],
+      }
+    }
+
+    acls = [
+      {
+        action = "accept"
+        src    = ["*"]
+        dst    = ["*:*"]
+      }
+    ]
+  })
+
+  reset_acl_on_destroy = true
+  overwrite_existing_content = var.overwrite_tailnet_acl
+}
+
+
 resource "tailscale_tailnet_key" "docker_key" {
   reusable      = true
   ephemeral     = false
   preauthorized = true
   description   = "Docker Routing Container Key"
   tags = ["tag:router"]
+  depends_on = [ tailscale_acl.policy ]
 }
 
 resource "docker_volume" "tailscale_auth_state" {
