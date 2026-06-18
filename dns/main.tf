@@ -74,7 +74,7 @@ resource "docker_container" "pihole" {
 
   env = [
     "FTLCONF_webserver_api_password=${var.pihole_password}",
-    "FTLCONF_dns_upstreams=${docker_container.unbound.hostname}",
+    "FTLCONF_dns_upstreams=${local.unbound_ip}",
   ]
 
   networks_advanced {
