@@ -1,3 +1,3 @@
-variable "pihole_ip" {
+variable "dns_ip" {
   type = string
 }

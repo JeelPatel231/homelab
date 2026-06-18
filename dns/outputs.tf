@@ -1,3 +1,3 @@
-output "pihole_ip" {
-  value = local.pihole_ip
+output "coredns_ip" {
+  value = local.coredns_ip
 }

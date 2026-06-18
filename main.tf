@@ -42,8 +42,7 @@ module "immich" {
 }
 
 module "tailscale_dns_config" {
-  count = 0
   source = "./tailscale-dns"
-  pihole_ip = module.dns.pihole_ip
+  dns_ip = module.dns.coredns_ip
   depends_on = [module.router, module.dns]
 }
