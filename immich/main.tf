@@ -5,18 +5,31 @@ locals {
   immich_ml_ip  = cidrhost(var.module_subnet, 3)
 }
 
-resource "local_file" "immich_config" {
+locals {
+  compose_overrides = templatefile("${path.module}/docker-compose.override.yml.tftpl", {
+    immich_ip      = local.immich_ip
+    redis_ip       = local.immich_redis_ip
+    postgres_ip    = local.immich_postgres_ip
+    docker_network = var.network_name
+
+    server_labels = {
+      "traefik.enable" = "true",
+      "traefik.http.routers.vaultwarden.rule" = "Host(`${var.immich_domain}`)",
+      "traefik.http.routers.whoami.entrypoints" = "web",
+    }
+  })
+}
+
+resource "local_file" "immich_override_config" {
+  filename = "${path.module}/docker-compose.generated.yml"
+  content = local.compose_overrides
+}
+
+resource "local_file" "immich_env_config" {
   filename = "${path.module}/.env"
   content = <<-EOT
-    IMMICH_IP="${local.immich_ip}"
-    IMMICH_REDIS_IP="${local.immich_redis_ip}"
-    IMMICH_POSTGRES_IP="${local.immich_postgres_ip}"
-    IMMICH_ML_IP="${local.immich_ml_ip}"
-
     UPLOAD_LOCATION="${var.immich_data}/upload/"
     DB_DATA_LOCATION="${var.immich_data}/db/"
-
-    DOCKER_NETWORK="${var.network_name}"
   EOT
 }
 
@@ -26,10 +39,10 @@ resource "docker_compose" "app" {
   wait           = true
   profiles = ["default"]
   env_files = [
-    local_file.immich_config.filename,
+    local_file.immich_env_config.filename,
   ]
   config_paths = [
     "${path.module}/docker-compose.yml",
-    "${path.module}/docker-compose.override.yml",
+    local_file.immich_override_config.filename,
   ]
 }

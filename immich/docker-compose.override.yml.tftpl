@@ -1,0 +1,66 @@
+# use this file to configure anything related to immich.
+# docker-compose.yml is pure immich compose file grabbed from github releases
+
+services:
+  immich-server:
+    hostname: immich
+    profiles:
+      - default
+
+    networks:
+      tailscale-docker-net:
+        ipv4_address: ${immich_ip}
+
+    environment:
+      IMMICH_MACHINE_LEARNING_URL: "false"
+      IMMICH_MACHINE_LEARNING_ENABLED: "false"
+
+      DB_HOSTNAME: immich_postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE_NAME: immich
+
+      REDIS_HOSTNAME: immich_redis
+
+%{ if length(server_labels) > 0 ~}
+    labels:
+%{ for key, value in server_labels ~}
+      ${key}: "${value}"
+%{ endfor ~}
+%{ endif ~}
+
+  immich-machine-learning:
+    profiles:
+      - ml
+
+    deploy:
+      replicas: 0
+
+  redis:
+    hostname: immich_redis
+    profiles:
+      - default
+
+    networks:
+      tailscale-docker-net:
+        ipv4_address: ${redis_ip}
+
+  database:
+    hostname: immich_postgres
+    profiles:
+      - default
+
+    networks:
+      tailscale-docker-net:
+        ipv4_address: ${postgres_ip}
+
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: immich
+      POSTGRES_INITDB_ARGS: --data-checksums
+
+networks:
+  tailscale-docker-net:
+    name: ${docker_network}
+    external: true

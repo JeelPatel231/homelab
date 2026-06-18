@@ -37,6 +37,7 @@ module "immich" {
   immich_data = "${local.workdir}/immich/"
   module_subnet = local.immich_subnet
   network_name = docker_network.tailscale_docker_net.name
+  immich_domain = "immich.${local.docker_suffix}"
 }
 
 module "tailscale_dns_config" {

@@ -9,3 +9,7 @@ variable "module_subnet" {
 variable "immich_data" {
   type = string
 }
+
+variable "immich_domain" {
+  type = string
+}
