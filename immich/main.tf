@@ -6,6 +6,7 @@ locals {
 }
 
 locals {
+  original_compose = "${path.module}/docker-compose.yml"
   compose_overrides = templatefile("${path.module}/docker-compose.override.yml.tftpl", {
     immich_ip      = local.immich_ip
     redis_ip       = local.immich_redis_ip
@@ -18,6 +19,10 @@ locals {
       "traefik.http.routers.immich.entrypoints" = "web",
     }
   })
+}
+
+resource "terraform_data" "config_trigger" {
+  input = filesha1(local.original_compose)
 }
 
 resource "local_file" "immich_override_config" {
@@ -42,7 +47,16 @@ resource "docker_compose" "app" {
     local_file.immich_env_config.filename,
   ]
   config_paths = [
-    "${path.module}/docker-compose.yml",
+    local.original_compose,
     local_file.immich_override_config.filename,
   ]
+
+  lifecycle {
+    replace_triggered_by = [
+      terraform_data.config_trigger,
+      local_file.immich_override_config,
+      local_file.immich_env_config,
+    ]
+  }
+
 }
