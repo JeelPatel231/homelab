@@ -125,8 +125,8 @@ locals {
           # Use specific DNS resolvers to speed up propagation checks
           resolvers:
             - "1.1.1.1:53"
-    EOT
-  }
+  EOT
+}
 
 resource "local_file" "traefik_config" {
   filename        = abspath("${path.module}/generated/traefik.yaml")
