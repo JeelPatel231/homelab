@@ -16,7 +16,8 @@ locals {
     server_labels = {
       "traefik.enable" = "true",
       "traefik.http.routers.immich.rule" = "Host(`${var.immich_domain}`)",
-      "traefik.http.routers.immich.entrypoints" = "web",
+      "traefik.http.routers.immich.entrypoints" = "websecure",
+      "traefik.http.routers.immich.tls.certResolver" = "porkbun",
     }
   })
 }

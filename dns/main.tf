@@ -110,7 +110,7 @@ locals {
       network: ${var.network_name}
 
   certificatesResolvers:
-    porkbun-resolver:
+    porkbun:
       acme:
         email: ${var.acme_email}
         storage: /acme.json
@@ -141,6 +141,10 @@ resource "docker_container" "traefik" {
   name = "traefik"
   image = docker_image.traefik.image_id
 
+  lifecycle {
+    replace_triggered_by = [local_file.traefik_config]
+  }
+
   env = [
     "PORKBUN_API_KEY=${var.porkbun_client_id}",
     "PORKBUN_SECRET_API_KEY=${var.porkbun_client_secret}"
@@ -158,7 +162,7 @@ resource "docker_container" "traefik" {
 
   labels {
     label = "traefik.http.routers.dashboard.entrypoints"
-    value = "web"
+    value = "websecure"
   }
 
   labels {
@@ -166,10 +170,11 @@ resource "docker_container" "traefik" {
     value = "api@internal"
   }
 
-  # labels {
-  #   label = "traefik.http.routers.dashboard.tls"
-  #   value = "true"
-  # }
+  labels {
+    label = "traefik.http.routers.dashboard.tls.certResolver"
+    value = "porkbun"
+  }
+
 
   volumes {
     host_path = var.docker_socket

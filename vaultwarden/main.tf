@@ -125,8 +125,13 @@ resource "docker_container" "vaultwarden" {
   }
 
   labels {
-    label = "traefik.http.routers.whoami.entrypoints"
-    value = "web"
+    label = "traefik.http.routers.vaultwarden.tls.certResolver"
+    value = "porkbun"
+  }
+
+  labels {
+    label = "traefik.http.routers.vaultwarden.entrypoints"
+    value = "websecure"
   }
 
   env = [
