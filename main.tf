@@ -21,9 +21,10 @@ module "dns" {
 
 module "vaultwarden" {
   source = "./vaultwarden"
-  rclone_conf_path = "/home/jeel/.config/rclone/rclone.conf"
-  vaultwarden_backup_dir = "/tmp"
+
+  vaultwarden_backup_dir = "${local.workdir}/vaultwarden/backup/"
   vaultwarden_data_dir = "${local.workdir}/vaultwarden/data/"
+  rclone_conf_path = "${local.workdir}/vaultwarden/rclone/rclone.conf"
 
   vaultwarden_domain = "vaultwarden.${local.docker_suffix}"
 
