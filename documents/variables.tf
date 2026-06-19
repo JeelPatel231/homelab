@@ -21,3 +21,11 @@ variable "paperless_domain" {
 variable "paperless_data_dir" {
   type = string
 }
+
+variable "stirlingpdf_domain" {
+  type = string
+}
+
+variable "stirlingpdf_data_dir" {
+  type = string
+}

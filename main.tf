@@ -52,6 +52,10 @@ module "documents" {
 
   paisa_domain = "paisa.${local.docker_suffix}"
   paisa_data_dir = "${local.workdir}/paisa/"
+
+  stirlingpdf_domain = "pdf.${local.docker_suffix}"
+  stirlingpdf_data_dir = "${local.workdir}/stirlingpdf/"
+
 }
 
 module "tailscale_dns_config" {
