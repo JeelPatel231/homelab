@@ -6,6 +6,7 @@ locals {
   dns_subnet = cidrsubnet(var.base_cidr, 8, 2)
   vaultwarden_subnet = cidrsubnet(var.base_cidr, 8, 3)
   immich_subnet = cidrsubnet(var.base_cidr, 8, 4)
+  documents_subnet = cidrsubnet(var.base_cidr, 8, 5)
 }
 
 resource "docker_network" "tailscale_docker_net" {

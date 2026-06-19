@@ -41,6 +41,19 @@ module "immich" {
   immich_domain = "immich.${local.docker_suffix}"
 }
 
+module "documents" {
+  source = "./documents"
+
+  module_subnet = local.documents_subnet
+  network_name = docker_network.tailscale_docker_net.name
+  
+  paperless_domain = "paperless.${local.docker_suffix}"
+  paperless_data_dir = "${local.workdir}/paperless/"
+
+  paisa_domain = "paisa.${local.docker_suffix}"
+  paisa_data_dir = "${local.workdir}/paisa/"
+}
+
 module "tailscale_dns_config" {
   source = "./tailscale-dns"
   dns_ip = module.dns.coredns_ip
