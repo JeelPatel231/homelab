@@ -13,6 +13,10 @@ locals {
     postgres_ip    = local.immich_postgres_ip
     docker_network = var.network_name
 
+    additional_volumes = [
+      "${var.immich_data}/external_library:/external:ro"
+    ]
+
     server_labels = {
       "traefik.enable" = "true",
       "traefik.http.routers.immich.rule" = "Host(`${var.immich_domain}`)",
