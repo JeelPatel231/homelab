@@ -56,7 +56,15 @@ module "documents" {
 
   stirlingpdf_domain = "pdf.${local.docker_suffix}"
   stirlingpdf_data_dir = "${local.workdir}/stirlingpdf/"
+}
 
+module "media" {
+  source = "./media"
+
+  module_subnet = local.media_subnet
+  network_name = docker_network.tailscale_docker_net.name
+  media_dir = "${local.workdir}/media/"
+  docker_suffix = local.docker_suffix
 }
 
 module "tailscale_dns_config" {
