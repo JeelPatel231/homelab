@@ -5,8 +5,8 @@ resource "tailscale_dns_split_nameservers" "docker_domain_split_dns" {
 }
 
 resource "tailscale_dns_nameservers" "pihole_dns" {
-  count = 0
   nameservers = [
-    var.dns_ip
+    # var.dns_ip
+    "1.1.1.1"
   ]
 }
