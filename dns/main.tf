@@ -119,7 +119,7 @@ locals {
     porkbun:
       acme:
         email: ${var.acme_email}
-        storage: /acme.json
+        storage: /letsencrypt/acme.json
         dnsChallenge:
           provider: porkbun
           # Use specific DNS resolvers to speed up propagation checks
@@ -141,6 +141,10 @@ data "docker_registry_image" "traefik" {
 resource "docker_image" "traefik" {
   name          = data.docker_registry_image.traefik.name
   pull_triggers = [data.docker_registry_image.traefik.sha256_digest]
+}
+
+resource "docker_volume" "traefik_acme" {
+  name = "traefik_acme"
 }
 
 resource "docker_container" "traefik" {
@@ -194,10 +198,11 @@ resource "docker_container" "traefik" {
     read_only = true
   }
 
-  # ports {
-  #   internal = 80
-  #   external = 9000
-  # }
+  volumes {
+    volume_name = docker_volume.traefik_acme.name
+    container_path = "/letsencrypt"
+  }
+
 
   # ports {
   #   internal = 443
