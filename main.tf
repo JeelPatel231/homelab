@@ -70,5 +70,7 @@ module "media" {
 module "tailscale_dns_config" {
   source = "./tailscale-dns"
   dns_ip = module.dns.coredns_ip
+  docker_suffix = local.docker_suffix
+
   depends_on = [module.router, module.dns]
 }
