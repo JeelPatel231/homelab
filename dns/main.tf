@@ -71,6 +71,7 @@ resource "docker_container" "unbound" {
 resource "docker_container" "pihole" {
   name  = "pihole"
   image = "pihole/pihole:latest"
+  restart = "unless-stopped"
 
   env = [
     "FTLCONF_webserver_api_password=${var.pihole_password}",
@@ -150,6 +151,7 @@ resource "docker_volume" "traefik_acme" {
 resource "docker_container" "traefik" {
   name = "traefik"
   image = docker_image.traefik.image_id
+  restart = "unless-stopped"
 
   lifecycle {
     replace_triggered_by = [local_file.traefik_config]

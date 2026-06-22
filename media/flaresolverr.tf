@@ -12,6 +12,7 @@ resource "docker_container" "flaresolverr" {
   name     = "flaresolverr"
   hostname = "flaresolverr"
   image    = docker_image.flaresolverr.image_id
+  restart = "unless-stopped"
 
   env = [
     "LOG_LEVEL=info",

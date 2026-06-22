@@ -19,6 +19,7 @@ resource "docker_image" "rclone_fswatch_image" {
 resource "docker_container" "rclone_fswatch_container" {
   name = "rclone_fswatch"
   image = docker_image.rclone_fswatch_image.image_id
+  restart = "unless-stopped"
 
   volumes {
     host_path = var.rclone_conf_path
@@ -52,6 +53,7 @@ resource "docker_image" "vaultwarden_backup" {
 resource "docker_container" "vaultwarden_backup" {
   name = "vaultwarden_backup"
   image = docker_image.vaultwarden_backup.image_id
+  restart = "unless-stopped"
   init = true
   env = [
     "BACKUP_ON_STARTUP=true",
@@ -103,6 +105,7 @@ resource "docker_container" "vaultwarden" {
   name = "vaultwarden"
   hostname = "vaultwarden_server"
   image = docker_image.vaultwarden.image_id
+  restart = "unless-stopped"
 
   volumes {
     host_path = var.vaultwarden_data_dir
