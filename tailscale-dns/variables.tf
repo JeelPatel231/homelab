@@ -5,3 +5,7 @@ variable "dns_ip" {
 variable "docker_suffix" {
   type = string
 }
+
+variable "internal_suffix" {
+  type = string
+}
