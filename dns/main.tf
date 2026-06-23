@@ -33,6 +33,16 @@ locals {
   EOT
 }
 
+resource "local_file" "unbound_conf" {
+  filename = abspath("${path.module}/generated/unbound.conf")
+
+  content = <<-EOT
+    server:
+      verbosity: 2
+
+  EOT
+}
+
 
 resource "docker_container" "coredns" {
   name    = "coredns"
@@ -59,8 +69,18 @@ resource "docker_container" "coredns" {
 
 resource "docker_container" "unbound" {
   name    = "unbound"
-  image   = "klutchell/unbound"
+  image   = "alpinelinux/unbound"
   restart = "unless-stopped"
+
+  lifecycle {
+    replace_triggered_by = [ local_file.unbound_conf ]
+  }
+
+  volumes {
+    host_path      = local_file.unbound_conf.filename
+    container_path = "/etc/unbound/unbound.conf"
+    read_only      = true
+  }
 
   networks_advanced {
     name         = var.network_name
