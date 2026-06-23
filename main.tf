@@ -67,6 +67,14 @@ module "media" {
   docker_suffix = local.docker_suffix
 }
 
+module "uptime" {
+  source = "./uptime"
+
+  module_subnet = local.uptime_subnet
+  network_name = docker_network.tailscale_docker_net.name
+  gatus_domain = "gatus.${local.docker_suffix}"
+}
+
 module "tailscale_dns_config" {
   source = "./tailscale-dns"
   dns_ip = module.dns.coredns_ip
