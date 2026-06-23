@@ -98,6 +98,36 @@ resource "docker_container" "pihole" {
     "FTLCONF_dns_upstreams=${local.unbound_ip}",
   ]
 
+  labels {
+    label = "traefik.enable"
+    value = "true"
+  }
+
+  labels { 
+    label = "traefik.http.routers.pihole.service"
+    value = "pihole"
+  }
+ 
+  labels {
+    label = "traefik.http.services.pihole.loadbalancer.server.port"
+    value = "80"
+  }
+
+  labels {
+    label = "traefik.http.routers.pihole.rule"
+    value = "Host(`pihole.${var.docker_suffix}`)"
+  }
+
+  labels {
+    label = "traefik.http.routers.pihole.tls.certResolver"
+    value = "porkbun"
+  }
+
+  labels {
+    label = "traefik.http.routers.pihole.entrypoints"
+    value = "websecure"
+  }
+
   networks_advanced {
     name         = var.network_name
     ipv4_address = local.pihole_ip
