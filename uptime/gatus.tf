@@ -1,6 +1,8 @@
 locals {
   gatus_ip = cidrhost(var.module_subnet, 0)
   config_dir = "${path.module}/config/"
+  hostname = "gatus"
+  docker_dns = "127.0.0.11"
 }
 
 resource "local_file" "gatus_config" {
@@ -18,6 +20,58 @@ resource "local_file" "gatus_config" {
           - "[STATUS] == 200"
           - "[BODY].res == pong"
           - "[RESPONSE_TIME] < 100"
+
+      # # only needed if the host is outside of tailnet.
+      # - name: host-dns-resolution
+      #   group: dns
+      #   url: ${local.docker_dns}
+      #   interval: 5m
+      #   dns:
+      #     query-name: "one.one.one.one"
+      #     query-type: "A"
+      #   conditions:
+      #     - "[DNS_RCODE] == NOERROR"
+      #     - "[BODY] == pat(*.*.*.*)"
+      #     - "[RESPONSE_TIME] < 200" 
+
+      - name: docker-dns-resolution
+        group: dns
+        url: "${var.coredns_ip}"
+        interval: 5m
+        dns:
+          query-name: "gatus.docker.jeelpa.tel"
+          query-type: "A"
+        conditions:
+          - "[DNS_RCODE] == NOERROR"
+          - "[BODY] == ${var.traefik_ip}"
+          - "[RESPONSE_TIME] < 200" 
+
+      
+      - name: internal-dns-resolution
+        group: dns
+        url: "${var.coredns_ip}"
+        interval: 5m
+        dns:
+          query-name: "${local.hostname}.${var.internal_suffix}"
+          query-type: "A"
+        conditions:
+          - "[DNS_RCODE] == NOERROR"
+          - "[BODY] == ${local.gatus_ip}"
+          - "[RESPONSE_TIME] < 200" 
+
+      - name: pihole-dns-resolution
+        group: dns
+        url: ${var.pihole_ip}
+        interval: 5m
+        dns:
+          query-name: "one.one.one.one"
+          query-type: "A"
+        conditions:
+          - "[DNS_RCODE] == NOERROR"
+          - "[BODY] == pat(*.*.*.*)"
+          - "[RESPONSE_TIME] < 500"
+
+      
   EOT
   filename = abspath("${local.config_dir}/config.yaml")
 }
@@ -38,6 +92,7 @@ resource "docker_volume" "gatus_data" {
 resource "docker_container" "gatus" {
   name  = "gatus"
   image = docker_image.gatus.image_id
+  hostname = local.hostname
 
   restart = "unless-stopped"
   

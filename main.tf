@@ -73,6 +73,10 @@ module "uptime" {
   module_subnet = local.uptime_subnet
   network_name = docker_network.tailscale_docker_net.name
   gatus_domain = "gatus.${local.docker_suffix}"
+  coredns_ip = module.dns.coredns_ip
+  traefik_ip = module.dns.traefik_ip
+  pihole_ip = module.dns.pihole_ip
+  internal_suffix = local.internal_suffix
 }
 
 module "tailscale_dns_config" {
