@@ -22,12 +22,17 @@ resource "tailscale_acl" "policy" {
       }
     }
 
-    acls = [
+    grants = [
       {
-        action = "accept"
-        src    = ["*"]
-        dst    = ["*:*"]
-      }
+        "src": ["autogroup:admin"],
+        "dst": ["*"],
+        "ip":  ["*"],
+      },
+      {
+        "src": ["autogroup:member"],
+        "dst": ["tag:router"],
+        "ip":  ["*"],
+      }         
     ]
   })
 
