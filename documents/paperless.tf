@@ -98,6 +98,7 @@ resource "docker_container" "paperless" {
   }
 
   env = [
+    "PAPERLESS_URL=https://${var.paperless_domain}",
     "PAPERLESS_REDIS=redis://${docker_container.paperless_broker.hostname}:6379",
   ]
 
