@@ -38,8 +38,9 @@ resource "local_file" "unbound_conf" {
 
   content = <<-EOT
     server:
-      verbosity: 2
-
+      verbosity: 1
+      access-control: 0.0.0.0/0 allow
+      interface: 0.0.0.0
   EOT
 }
 
