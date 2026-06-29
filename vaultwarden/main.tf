@@ -93,7 +93,7 @@ resource "docker_container" "vaultwarden_backup" {
 
 
 data "docker_registry_image" "vaultwarden" {
-  name = "vaultwarden/server:1.35.4-alpine"
+  name = "vaultwarden/server:1.36.0-alpine"
 }
 
 resource "docker_image" "vaultwarden" {
