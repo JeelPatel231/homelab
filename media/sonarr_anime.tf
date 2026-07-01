@@ -41,6 +41,9 @@ resource "docker_container" "sonarr_anime" {
   #   host_path      = local.sonarr_anime_config_dir
   #   container_path = "/config"
   # }
+
+  depends_on = [ local_file.media_folders ]
+
   lifecycle {
     replace_triggered_by = [ local_file.sonarr_anime_config ]
   }

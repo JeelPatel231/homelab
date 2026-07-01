@@ -65,6 +65,23 @@ module "media" {
   network_name = docker_network.tailscale_docker_net.name
   media_dir = "${local.workdir}/media/"
   docker_suffix = local.docker_suffix
+  webui_password = var.qbit_web_password
+  api_key = var.arr_api_key
+}
+
+module "media_config" {
+  source = "./media_config"
+
+  api_key = var.arr_api_key
+  qbit_webui_password = var.qbit_web_password
+
+  hosts = {
+    "sonarr-anime" = "http://sonarr-anime.${local.internal_suffix}"
+    "radarr-anime" = "http://radarr-anime.${local.internal_suffix}"
+  }
+
+  depends_on = [ module.dns, module.media ]
+
 }
 
 module "uptime" {

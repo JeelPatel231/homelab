@@ -64,6 +64,17 @@ variable "pihole_password" {
   default = "Password@1"
 }
 
+variable "arr_api_key" {
+  type = string
+  sensitive = true
+}
+
+variable "qbit_web_password" {
+  type = string
+  sensitive = true
+  default = "adminadmin"
+}
+
 variable "overwrite_tailnet_acl" {
   type = bool
   default = false

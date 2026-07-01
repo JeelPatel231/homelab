@@ -35,6 +35,8 @@ resource "docker_container" "radarr_anime" {
 
   restart = "unless-stopped"
 
+  depends_on = [ local_file.media_folders ]
+
   lifecycle {
     replace_triggered_by = [ local_file.radarr_anime_config ]
   }

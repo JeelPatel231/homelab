@@ -1,39 +1,32 @@
-resource "random_string" "api_key" {
-  length  = 32
-  upper   = true
-  lower   = true
-  numeric = true
-  special = false
-}
-
 locals {
-  api_key = random_string.api_key.result
+  api_key = var.api_key
   flaresolverr_ip = cidrhost(var.module_subnet, 2)
   prowlarr_ip     = cidrhost(var.module_subnet, 3)
   radarr_anime_ip = cidrhost(var.module_subnet, 5)
   sonarr_anime_ip = cidrhost(var.module_subnet, 6)
+  qbittorrent_ip = cidrhost(var.module_subnet, 7)
 }
 
 locals {
-  flaresolverr_domain = "flaresolverr.${var.docker_suffix}"
-  prowlarr_domain     = "prowlarr.${var.docker_suffix}"
+  flaresolverr_prefix = "flaresolverr"
+  prowlarr_prefix = "prowlarr"
+  radarr_anime_prefix = "radarr-anime"
+  sonarr_anime_prefix = "sonarr-anime"
+  qbittorrent_prefix = "qbittorrent"
 
+  flaresolverr_domain = "${local.flaresolverr_prefix}.${var.docker_suffix}"
+  prowlarr_domain     = "${local.prowlarr_prefix}.${var.docker_suffix}"
+  qbittorrent_domain = "${local.qbittorrent_prefix}.${var.docker_suffix}"
   # NOTE: lets encrypt says '_' is an invalid character when generating ssl. we use '-'
-  radarr_anime_domain = "radarr-anime.${var.docker_suffix}"
-  sonarr_anime_domain = "sonarr-anime.${var.docker_suffix}"
+  radarr_anime_domain = "${local.radarr_anime_prefix}.${var.docker_suffix}"
+  sonarr_anime_domain = "${local.sonarr_anime_prefix}.${var.docker_suffix}"
+
+  folders = ["movies", "tv", "games"]
 }
 
-locals {
-  tv_dir = "${var.media_dir}/tv"
-  movies_dir = "${var.media_dir}/movies"
-}
-
-resource "local_file" "tv_dir" {
-  filename = "${local.tv_dir}/.keep"
-  content = ""
-}
-
-resource "local_file" "movies_dir" {
-  filename = "${local.movies_dir}/.keep"
+resource "local_file" "media_folders" {
+  for_each = toset(local.folders)
+  filename = "${var.media_dir}/${each.value}/.keep"
+  directory_permission = "0777"
   content = ""
 }
