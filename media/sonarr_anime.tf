@@ -7,9 +7,32 @@ resource "docker_image" "sonarr" {
   pull_triggers = [data.docker_registry_image.sonarr.sha256_digest]
 }
 
+resource "local_file" "sonarr_anime_config" {
+  filename = abspath("${path.module}/configs/sonarr/config.xml")
+  content = <<-EOT
+  <Config>
+    <BindAddress>*</BindAddress>
+    <SslPort>9898</SslPort>
+    <EnableSsl>False</EnableSsl>
+    <LaunchBrowser>True</LaunchBrowser>
+    <AuthenticationMethod>External</AuthenticationMethod>
+    <AuthenticationRequired>Enabled</AuthenticationRequired>
+    <Branch>main</Branch>
+    <LogLevel>debug</LogLevel>
+    <SslCertPath></SslCertPath>
+    <SslCertPassword></SslCertPassword>
+    <UrlBase></UrlBase>
+    <InstanceName>Sonarr</InstanceName>
+    <UpdateMechanism>Docker</UpdateMechanism>
+  </Config>
+  EOT
+}
+
+
+
 resource "docker_container" "sonarr_anime" {
   name     = "sonarr_anime"
-  hostname = "sonarr_anime"
+  hostname = "sonarr-anime"
   image    = docker_image.sonarr.image_id
 
   restart = "unless-stopped"
@@ -18,8 +41,12 @@ resource "docker_container" "sonarr_anime" {
   #   host_path      = local.sonarr_anime_config_dir
   #   container_path = "/config"
   # }
+  lifecycle {
+    replace_triggered_by = [ local_file.sonarr_anime_config ]
+  }
+
   volumes {
-    host_path      = abspath("${path.module}/configs/sonarr/config.xml")
+    host_path      = local_file.sonarr_anime_config.filename
     container_path = "/config/config.xml"
     read_only = true
   }

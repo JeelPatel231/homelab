@@ -7,6 +7,27 @@ resource "docker_image" "prowlarr" {
   pull_triggers = [data.docker_registry_image.prowlarr.sha256_digest]
 }
 
+resource "local_file" "prowlarr_config" {
+  filename = abspath("${path.module}/configs/prowlarr/config.xml")
+  content  = <<-EOT
+  <Config>
+    <BindAddress>*</BindAddress>
+    <SslPort>6969</SslPort>
+    <EnableSsl>False</EnableSsl>
+    <LaunchBrowser>True</LaunchBrowser>
+    <AuthenticationMethod>External</AuthenticationMethod>
+    <AuthenticationRequired>Enabled</AuthenticationRequired>
+    <Branch>master</Branch>
+    <LogLevel>debug</LogLevel>
+    <SslCertPath></SslCertPath>
+    <SslCertPassword></SslCertPassword>
+    <UrlBase></UrlBase>
+    <InstanceName>Prowlarr</InstanceName>
+    <UpdateMechanism>Docker</UpdateMechanism>
+  </Config>
+  EOT
+}
+
 resource "docker_container" "prowlarr" {
   name     = "prowlarr"
   hostname = "prowlarr"
@@ -18,10 +39,15 @@ resource "docker_container" "prowlarr" {
   #   host_path      = local.prowlarr_data_dir
   #   container_path = "/config"
   # }
+
+  lifecycle {
+    replace_triggered_by = [local_file.prowlarr_config]
+  }
+
   volumes {
-    host_path      = abspath("${path.module}/configs/prowlarr/config.xml")
+    host_path      = local_file.prowlarr_config.filename
     container_path = "/config/config.xml"
-    read_only = true
+    read_only      = true
   }
 
   labels {
@@ -29,11 +55,11 @@ resource "docker_container" "prowlarr" {
     value = "true"
   }
 
-  labels { 
+  labels {
     label = "traefik.http.routers.prowlarr.service"
     value = "prowlarr"
   }
- 
+
   labels {
     label = "traefik.http.services.prowlarr.loadbalancer.server.port"
     value = "80"

@@ -7,15 +7,40 @@ resource "docker_image" "radarr" {
   pull_triggers = [data.docker_registry_image.radarr.sha256_digest]
 }
 
+resource "local_file" "radarr_anime_config" {
+  filename = abspath("${path.module}/configs/radarr/config.xml")
+  content = <<-EOT
+  <Config>
+    <BindAddress>*</BindAddress>
+    <SslPort>6969</SslPort>
+    <EnableSsl>False</EnableSsl>
+    <LaunchBrowser>True</LaunchBrowser>
+    <AuthenticationMethod>External</AuthenticationMethod>
+    <AuthenticationRequired>Enabled</AuthenticationRequired>
+    <Branch>master</Branch>
+    <LogLevel>debug</LogLevel>
+    <SslCertPath></SslCertPath>
+    <SslCertPassword></SslCertPassword>
+    <UrlBase></UrlBase>
+    <InstanceName>Prowlarr</InstanceName>
+    <UpdateMechanism>Docker</UpdateMechanism>
+  </Config>
+  EOT
+}
+
 resource "docker_container" "radarr_anime" {
   name     = "radarr_anime"
-  hostname = "radarr_anime"
+  hostname = "radarr-anime"
   image    = docker_image.radarr.image_id
 
   restart = "unless-stopped"
 
+  lifecycle {
+    replace_triggered_by = [ local_file.radarr_anime_config ]
+  }
+
   volumes {
-    host_path      = abspath("${path.module}/configs/radarr/config.xml")
+    host_path      = local_file.radarr_anime_config.filename
     container_path = "/config/config.xml"
     read_only = true
   }
