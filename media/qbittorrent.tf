@@ -8,7 +8,8 @@ resource "docker_image" "qbittorrent" {
 }
 
 locals {
-  torrents_dir = "${var.media_dir}/torrents"
+  torrents_dir = abspath("${var.media_dir}/torrents")
+  init_scripts_dir = abspath("${path.module}/init_scripts")
 }
 
 resource "local_file" "torrents_dir" {
@@ -18,48 +19,71 @@ resource "local_file" "torrents_dir" {
   content = ""
 }
 
-# 1. External data source that spawns an inline Python Docker container
-data "external" "pbkdf2_generator" {
-  program = [
-    "docker",
-    "run",
-    "--rm",
-    "-i", # Interactive flag allows Docker to forward Terraform's stdin to Python
-    "python:3.11-slim",
-    "python",
-    "-c",
-    <<-EOT
-import sys, json, os, hashlib, base64
-try:
-    inputs = json.load(sys.stdin)
-    password = inputs.get("password")
-    if not password:
-        print(json.dumps({"error": "Missing password"}), file=sys.stderr)
-        sys.exit(1)
+resource "local_file" "password_config" {
+  filename = abspath("${local.init_scripts_dir}/01-set-password")
+  content = <<-EOT
+  #!/bin/bash 
 
-    # Generate a deterministic 16-byte salt by hashing the password itself
-    # This acts as your static seed while keeping the salt unique to this password
-    salt = hashlib.sha256(password.encode("utf-8")).digest()[:16]
+  python <<PYTHON_INIT
+  print("[qbittorrent-webui-password] Setting qBittorrent WebUI password from QBITTORRENT_WEBUI_PASSWORD environment variable.")
 
-    key = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 100000)
-    salt_b64 = base64.b64encode(salt).decode("utf-8")
-    key_b64 = base64.b64encode(key).decode("utf-8")
+  import base64
+  import hashlib
+  import os
+  import pathlib
+  import sys
 
-    print(json.dumps({"pbkdf2_hash": f"@ByteArray({salt_b64}:{key_b64})"}))
+  config_path = pathlib.Path("/config/qBittorrent/qBittorrent.conf")
+  password = os.environ.get("QBITTORRENT_WEBUI_PASSWORD")
 
-except Exception as e:
-    print(json.dumps({"error": str(e)}), file=sys.stderr)
-    sys.exit(1)
-EOT
+  if password is None:
+      print("[qbittorrent-webui-password] QBITTORRENT_WEBUI_PASSWORD is not set; keeping qBittorrent's generated password behavior.")
+      sys.exit(0)
+
+  salt = os.urandom(16)
+  password_hash = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 100000)
+  config_value = '@ByteArray({}:{})'.format(
+      base64.b64encode(salt).decode("ascii"),
+      base64.b64encode(password_hash).decode("ascii"),
+  )
+
+  if config_path.exists():
+      lines = config_path.read_text(encoding="utf-8").splitlines()
+  else:
+      lines = ["[LegalNotice]", "Accepted=true", "", "[Preferences]"]
+
+  lines = [
+      line for line in lines
+      if not line.startswith("WebUI\\\Password_PBKDF2=")
+      and not line.startswith("WebUI\\\Password_ha1=")
   ]
 
-  query = {
-    password = var.webui_password
-  }
+  if "[Preferences]" not in lines:
+      if lines and lines[-1] != "":
+          lines.append("")
+      lines.append("[Preferences]")
+
+  pref_index = lines.index("[Preferences]")
+  insert_at = pref_index + 1
+
+  while insert_at < len(lines):
+      line = lines[insert_at]
+      if line.startswith("[") and line.endswith("]"):
+          break
+      insert_at += 1
+
+  lines.insert(insert_at, f'WebUI\\\Password_PBKDF2="{config_value}"')
+
+  config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+  
+  print("[qbittorrent-webui-password] Applied password from QBITTORRENT_WEBUI_PASSWORD.")
+  PYTHON_INIT
+
+  EOT
 }
 
 resource "local_file" "qbit_default_config" {
-  filename = abspath("${path.module}/configs/qbittorrent/qBittorrrent.conf")
+  filename = abspath("${path.module}/configs/qbittorrent/qBittorrent.conf")
   content = <<-EOT
     [AutoRun]
     enabled=false
@@ -92,11 +116,66 @@ resource "local_file" "qbit_default_config" {
     Connection\UPnP=false
     Downloads\SavePath=/downloads/
     Downloads\TempPath=/downloads/incomplete/
+    WebUI\LocalHostAuth=false
     # WebUI\APIKey=${local.api_key}
     WebUI\Address=*
     WebUI\Port=80
-    WebUI\Password_PBKDF2="${data.external.pbkdf2_generator.result.pbkdf2_hash}"
     WebUI\ServerDomains=*
+  EOT
+}
+
+resource "local_file" "init_preferences" {
+  filename = abspath("${local.init_scripts_dir}/02-set-preferences")
+  content = <<-EOT
+    #!/bin/bash
+
+    set_preferences() {
+      json_data=$(cat <<'DATA'
+    {
+      "locale":"en",
+      "confirm_torrent_deletion":true,
+      "torrent_content_layout":"Subfolder",
+      "merge_trackers":true,
+      "auto_delete_mode":1,
+      "preallocate_all":false,
+      "auto_tmm_enabled":true,
+      "torrent_changed_tmm_enabled":true,
+      "save_path_changed_tmm_enabled":true,
+      "category_changed_tmm_enabled":true,
+      "use_category_paths_in_manual_mode":true,
+      "save_path":"/downloads",
+      "temp_path_enabled":false,
+      "temp_path":"/downloads/incomplete",
+      "listen_port":6881,
+      "upnp":false,
+      "max_connec":500,
+      "max_connec_per_torrent":100,
+      "max_uploads":20,
+      "max_uploads_per_torrent":4,
+      "max_active_checking_torrents":1,
+      "queueing_enabled":true,
+      "max_active_downloads":3,
+      "max_active_uploads":3,
+      "max_active_torrents":5,
+      "bypass_local_auth":true
+    }
+    DATA
+      )
+
+      curl -v -X POST \
+        http://localhost:80/api/v2/app/setPreferences \
+        --data-urlencode "json=$json_data"
+    }
+
+    (
+      until curl -fsS http://localhost:80/api/v2/app/version >/dev/null 2>&1; do
+        echo "Waiting for qBittorrent WebUI to be available..."
+        sleep 1
+      done
+
+      set_preferences
+      echo "qBittorrent preferences have been set."
+    ) &
   EOT
 }
 
@@ -107,15 +186,30 @@ resource "docker_container" "qbittorrent" {
 
   restart = "unless-stopped"
 
-  depends_on = [ local_file.torrents_dir ]
+  depends_on = [ 
+    local_file.torrents_dir,
+    local_file.qbit_default_config,
+    local_file.password_config,
+    local_file.init_preferences
+  ]
 
   lifecycle {
-    replace_triggered_by = [ local_file.qbit_default_config ]
+    replace_triggered_by = [ 
+      local_file.qbit_default_config,
+      local_file.password_config,
+      local_file.init_preferences
+    ]
   }
 
   volumes {
     host_path      = local_file.qbit_default_config.filename
     container_path = "/config/qBittorrent/qBittorrent.conf"
+  }
+
+  volumes {
+    host_path      = local.init_scripts_dir
+    container_path = "/custom-cont-init.d/"
+    # read_only = true
   }
 
   volumes {
@@ -155,7 +249,8 @@ resource "docker_container" "qbittorrent" {
 
 
   env = [
-    "WEBUI_PORT=80"
+    "WEBUI_PORT=80",
+    "QBITTORRENT_WEBUI_PASSWORD=${var.webui_password}",
   ]
 
   networks_advanced {
