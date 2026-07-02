@@ -50,6 +50,11 @@ resource "docker_container" "prowlarr" {
     read_only      = true
   }
 
+  volumes {
+    host_path = abspath("${path.module}/prowlarr_indexers")
+    container_path = "/config/Definitions/Custom"
+  }
+
   labels {
     label = "traefik.enable"
     value = "true"
