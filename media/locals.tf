@@ -5,6 +5,7 @@ locals {
   radarr_anime_ip = cidrhost(var.module_subnet, 5)
   sonarr_anime_ip = cidrhost(var.module_subnet, 6)
   qbittorrent_ip = cidrhost(var.module_subnet, 7)
+  copyparty_ip = cidrhost(var.module_subnet, 8)
 }
 
 locals {
@@ -13,6 +14,7 @@ locals {
   radarr_anime_prefix = "radarr-anime"
   sonarr_anime_prefix = "sonarr-anime"
   qbittorrent_prefix = "qbittorrent"
+  copyparty_prefix = "copyparty"
 
   flaresolverr_domain = "${local.flaresolverr_prefix}.${var.docker_suffix}"
   prowlarr_domain     = "${local.prowlarr_prefix}.${var.docker_suffix}"
@@ -20,6 +22,8 @@ locals {
   # NOTE: lets encrypt says '_' is an invalid character when generating ssl. we use '-'
   radarr_anime_domain = "${local.radarr_anime_prefix}.${var.docker_suffix}"
   sonarr_anime_domain = "${local.sonarr_anime_prefix}.${var.docker_suffix}"
+  
+  copyparty_domain = "${local.copyparty_prefix}.${var.docker_suffix}"
 
   folders = ["movies", "tv", "games"]
 }
