@@ -16,6 +16,10 @@ terraform {
       source  = "devopsarr/radarr"
       version = "2.3.5"
     }
+    prowlarr = {
+      source  = "devopsarr/prowlarr"
+      version = "3.2.1"
+    }
   }
 }
 
@@ -38,5 +42,11 @@ provider "sonarr" {
 provider "radarr" {
   // hardcoded for now.
   url     = "http://radarr-anime.${local.internal_suffix}"
+  api_key = var.arr_api_key
+}
+
+provider "prowlarr" {
+  // hardcoded for now.
+  url     = "http://prowlarr.${local.internal_suffix}"
   api_key = var.arr_api_key
 }

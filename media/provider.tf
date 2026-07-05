@@ -6,5 +6,14 @@ terraform {
     random = {
       source = "hashicorp/random"
     }
+    sonarr = {
+      source  = "devopsarr/sonarr"
+    }
+    radarr = {
+      source  = "devopsarr/radarr"
+    }
+    prowlarr = {
+      source  = "devopsarr/prowlarr"
+    }
   }
 }

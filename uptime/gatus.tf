@@ -14,13 +14,6 @@ resource "local_file" "gatus_config" {
       path: /db/data.db
 
     endpoints:
-      - name: "Immich"
-        url: "http://immich:2283/api/server/ping"
-        conditions:
-          - "[STATUS] == 200"
-          - "[BODY].res == pong"
-          - "[RESPONSE_TIME] < 100"
-
       # # only needed if the host is outside of tailnet.
       # - name: host-dns-resolution
       #   group: dns
@@ -71,6 +64,49 @@ resource "local_file" "gatus_config" {
           - "[BODY] == pat(*.*.*.*)"
           - "[RESPONSE_TIME] < 500"
 
+      - name: "Immich"
+        group: media
+        url: "http://immich:2283/api/server/ping"
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].res == pong"
+          - "[RESPONSE_TIME] < 100"
+
+      - name: "Prowlarr"
+        group: arr
+        url: "http://prowlarr/api/v1/health"
+        headers:
+          X-API-Key: "${var.arr_api_key}"
+        conditions:
+          - "[STATUS] == 200"
+          - "[RESPONSE_TIME] < 100"
+
+      - name: "Sonarr[Anime]"
+        group: arr
+        url: "http://sonarr-anime/api/v3/health"
+        headers:
+          X-API-Key: "${var.arr_api_key}"
+        conditions:
+          - "[STATUS] == 200"
+          - "[RESPONSE_TIME] < 100"
+
+      - name: "Radarr [Anime]"
+        group: arr
+        url: "http://radarr-anime/api/v3/health"
+        headers:
+          X-API-Key: "${var.arr_api_key}"
+        conditions:
+          - "[STATUS] == 200"
+          - "[RESPONSE_TIME] < 100"
+
+      - name: "qBittorrent"
+        group: arr
+        url: "http://qbittorrent/api/v2/app/webapiVersion"
+        headers:
+          Authorization: "Bearer ${var.arr_api_key}"
+        conditions:
+          - "[STATUS] == 200"
+          - "[RESPONSE_TIME] < 100"
       
   EOT
   filename = abspath("${local.config_dir}/config.yaml")

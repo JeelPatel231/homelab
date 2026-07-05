@@ -8,9 +8,9 @@ resource "docker_image" "copyparty" {
 }
 
 
-// NOTE: many of copyparty's features rely on real ip of client. 
+// NOTE: many of copyparty's features rely on real ip of client.
 // since we are using tailscale router, we may need to update the config of that to preserve the source ip.
-// and also forwarded-ip or anything like that 
+// and also forwarded-ip or anything like that
 resource "docker_container" "copyparty" {
   name  = "copyparty"
   image = docker_image.copyparty.image_id

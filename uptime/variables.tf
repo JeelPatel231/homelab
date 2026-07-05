@@ -25,3 +25,7 @@ variable "pihole_ip" {
 variable "internal_suffix" {
   type = string
 }
+
+variable "arr_api_key" {
+  type = string
+}

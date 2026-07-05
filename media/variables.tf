@@ -6,6 +6,10 @@ variable "docker_suffix" {
   type = string
 }
 
+variable "internal_suffix" {
+  type = string
+}
+
 variable "module_subnet" {
   type = string
 }
@@ -15,11 +19,11 @@ variable "media_dir" {
 }
 
 variable "api_key" {
-  type        = string
-  sensitive   = true
+  type = string
+  # sensitive   = true
 }
 
 variable "webui_password" {
-  type        = string
-  sensitive   = true
+  type = string
+  # sensitive = true
 }

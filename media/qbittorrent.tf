@@ -8,21 +8,21 @@ resource "docker_image" "qbittorrent" {
 }
 
 locals {
-  torrents_dir = abspath("${var.media_dir}/torrents")
+  torrents_dir     = abspath("${var.media_dir}/torrents")
   init_scripts_dir = abspath("${path.module}/init_scripts")
 }
 
 resource "local_file" "torrents_dir" {
-  for_each = toset(local.folders)
-  filename = "${local.torrents_dir}/${each.value}/.keep"
+  for_each             = toset(local.folders)
+  filename             = "${local.torrents_dir}/${each.value}/.keep"
   directory_permission = "0777"
-  content = ""
+  content              = ""
 }
 
 resource "local_file" "password_config" {
   filename = abspath("${local.init_scripts_dir}/01-set-password")
-  content = <<-EOT
-  #!/bin/bash 
+  content  = <<-EOT
+  #!/bin/bash
 
   python <<PYTHON_INIT
   print("[qbittorrent-webui-password] Setting qBittorrent WebUI password from QBITTORRENT_WEBUI_PASSWORD environment variable.")
@@ -84,7 +84,7 @@ resource "local_file" "password_config" {
 
 resource "local_file" "qbit_default_config" {
   filename = abspath("${path.module}/configs/qbittorrent/qBittorrent.conf")
-  content = <<-EOT
+  content  = <<-EOT
     [AutoRun]
     enabled=false
     program=
@@ -117,16 +117,27 @@ resource "local_file" "qbit_default_config" {
     Downloads\SavePath=/downloads/
     Downloads\TempPath=/downloads/incomplete/
     WebUI\LocalHostAuth=false
-    # WebUI\APIKey=${local.api_key}
+    WebUI\APIKey=${local.api_key}
     WebUI\Address=*
     WebUI\Port=80
     WebUI\ServerDomains=*
   EOT
 }
 
+resource "local_file" "default_config_init" {
+  filename = abspath("${local.init_scripts_dir}/01-copy-init-config")
+  content  = <<-EOT
+    #!/bin/bash
+
+    cp /defaults/qBittorrent.conf /config/qBittorrent/qBittorrent.conf
+
+    echo "Copy of default file complete!"
+  EOT
+}
+
 resource "local_file" "init_preferences" {
   filename = abspath("${local.init_scripts_dir}/02-set-preferences")
-  content = <<-EOT
+  content  = <<-EOT
     #!/bin/bash
 
     set_preferences() {
@@ -186,7 +197,7 @@ resource "docker_container" "qbittorrent" {
 
   restart = "unless-stopped"
 
-  depends_on = [ 
+  depends_on = [
     local_file.torrents_dir,
     local_file.qbit_default_config,
     local_file.password_config,
@@ -194,7 +205,7 @@ resource "docker_container" "qbittorrent" {
   ]
 
   lifecycle {
-    replace_triggered_by = [ 
+    replace_triggered_by = [
       local_file.qbit_default_config,
       local_file.password_config,
       local_file.init_preferences
@@ -203,7 +214,8 @@ resource "docker_container" "qbittorrent" {
 
   volumes {
     host_path      = local_file.qbit_default_config.filename
-    container_path = "/config/qBittorrent/qBittorrent.conf"
+    container_path = "/default/qBittorrent.conf"
+    read_only      = true
   }
 
   volumes {
@@ -222,7 +234,7 @@ resource "docker_container" "qbittorrent" {
     value = "true"
   }
 
-  labels { 
+  labels {
     label = "traefik.http.routers.qbittorrent.service"
     value = "qbittorrent"
   }
