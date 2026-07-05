@@ -16,7 +16,7 @@ resource "local_file" "sonarr_anime_config" {
     <EnableSsl>False</EnableSsl>
     <LaunchBrowser>True</LaunchBrowser>
     <AuthenticationMethod>External</AuthenticationMethod>
-    <AuthenticationRequired>Enabled</AuthenticationRequired>
+    <AuthenticationRequired>DisabledForLocalAddresses</AuthenticationRequired>
     <Branch>main</Branch>
     <LogLevel>debug</LogLevel>
     <SslCertPath></SslCertPath>

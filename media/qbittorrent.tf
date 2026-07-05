@@ -75,7 +75,7 @@ resource "local_file" "password_config" {
   lines.insert(insert_at, f'WebUI\\\Password_PBKDF2="{config_value}"')
 
   config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-  
+
   print("[qbittorrent-webui-password] Applied password from QBITTORRENT_WEBUI_PASSWORD.")
   PYTHON_INIT
 
