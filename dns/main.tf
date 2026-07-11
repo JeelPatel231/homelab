@@ -83,6 +83,8 @@ resource "docker_container" "unbound" {
     read_only      = true
   }
 
+  dns = ["1.1.1.1", "8.8.8.8"]
+
   networks_advanced {
     name         = var.network_name
     ipv4_address = local.unbound_ip
