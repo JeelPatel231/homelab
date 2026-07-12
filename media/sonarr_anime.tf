@@ -28,6 +28,28 @@ resource "local_file" "sonarr_anime_config" {
   EOT
 }
 
+locals {
+  sonarr_init_scripts_dir = abspath("${path.module}/sonarr_init_scripts/")
+}
+
+resource "local_file" "create_tv_folder" {
+  filename = abspath("${local.sonarr_init_scripts_dir}/01-create-tv-folder")
+  content  = <<-EOT
+    #!/bin/bash
+    mkdir -p /data/tv
+    chown -R 1000:1000 /data/tv
+    echo "Created TV folder!"
+  EOT
+}
+
+resource "local_file" "sonarr_copy_defaults" {
+  filename = abspath("${local.sonarr_init_scripts_dir}/02-copy-defaults")
+  content  = <<-EOT
+    #!/bin/bash
+    cp /defaults/config.xml /config/
+    echo "Defualts Copied"
+  EOT
+}
 
 
 resource "docker_container" "sonarr_anime" {
@@ -42,15 +64,28 @@ resource "docker_container" "sonarr_anime" {
   #   container_path = "/config"
   # }
 
-  depends_on = [ local_file.media_folders ]
+  depends_on = [ 
+    local_file.sonarr_anime_config,
+    local_file.sonarr_copy_defaults,
+    local_file.media_folder  
+  ]
 
   lifecycle {
-    replace_triggered_by = [ local_file.sonarr_anime_config ]
+    replace_triggered_by = [ 
+      local_file.sonarr_anime_config,
+      local_file.sonarr_copy_defaults,
+    ]
+  }
+
+  volumes {
+    host_path      = local.sonarr_init_scripts_dir
+    container_path = "/custom-cont-init.d/"
+    # read_only = true
   }
 
   volumes {
     host_path      = local_file.sonarr_anime_config.filename
-    container_path = "/config/config.xml"
+    container_path = "/defaults/config.xml"
     read_only = true
   }
 
@@ -91,10 +126,10 @@ resource "docker_container" "sonarr_anime" {
 
 
 
-  env = [
+  env = concat([
     "SONARR__AUTH__APIKEY=${local.api_key}",
     "SONARR__SERVER__PORT=80",
-  ]
+  ], local.arr_permission)
 
   networks_advanced {
     name         = var.network_name

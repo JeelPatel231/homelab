@@ -25,12 +25,18 @@ locals {
   
   copyparty_domain = "${local.copyparty_prefix}.${var.docker_suffix}"
 
-  folders = ["movies", "tv", "games"]
 }
 
-resource "local_file" "media_folders" {
-  for_each = toset(local.folders)
-  filename = "${var.media_dir}/${each.value}/.keep"
+resource "local_file" "media_folder" {
+  filename = "${var.media_dir}/.keep"
   directory_permission = "0777"
   content = ""
+}
+
+locals {
+  arr_permission = [
+    "PGID=1000",
+    "PUID=1000",
+    "UMASK=002",
+  ]
 }

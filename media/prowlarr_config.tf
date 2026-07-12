@@ -181,6 +181,7 @@ resource "prowlarr_indexer" "tokyotosho" {
   protocol        = "torrent"
   app_profile_id  = 1
   priority        = 1
+  depends_on = [ terraform_data.wait_for_prowlarr ]
 
   fields = [
     {
@@ -206,7 +207,6 @@ resource "prowlarr_indexer" "tokyotosho" {
   ]
 }
 
-
 resource "prowlarr_indexer" "subsplease" {
   enable          = true
   redirect        = false
@@ -216,6 +216,7 @@ resource "prowlarr_indexer" "subsplease" {
   protocol        = "torrent"
   app_profile_id  = 1
   priority        = 1
+  depends_on = [ terraform_data.wait_for_prowlarr ]
 
   fields = [
     {
@@ -243,6 +244,7 @@ resource "prowlarr_indexer" "bangumimoe" {
   protocol        = "torrent"
   app_profile_id  = 1
   priority        = 1
+  depends_on = [ terraform_data.wait_for_prowlarr ]
 
   fields = [
     {

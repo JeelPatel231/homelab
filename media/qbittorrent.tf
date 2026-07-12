@@ -9,18 +9,11 @@ resource "docker_image" "qbittorrent" {
 
 locals {
   torrents_dir     = abspath("${var.media_dir}/torrents")
-  init_scripts_dir = abspath("${path.module}/init_scripts")
-}
-
-resource "local_file" "torrents_dir" {
-  for_each             = toset(local.folders)
-  filename             = "${local.torrents_dir}/${each.value}/.keep"
-  directory_permission = "0777"
-  content              = ""
+  qbit_init_scripts_dir = abspath("${path.module}/qbit_init_scripts")
 }
 
 resource "local_file" "password_config" {
-  filename = abspath("${local.init_scripts_dir}/01-set-password")
+  filename = abspath("${local.qbit_init_scripts_dir}/01-set-password")
   content  = <<-EOT
   #!/bin/bash
 
@@ -114,8 +107,8 @@ resource "local_file" "qbit_default_config" {
     [Preferences]
     Connection\PortRangeMin=6881
     Connection\UPnP=false
-    Downloads\SavePath=/downloads/
-    Downloads\TempPath=/downloads/incomplete/
+    Downloads\SavePath=/data/torrents/
+    Downloads\TempPath=/data/torrents/incomplete/
     WebUI\LocalHostAuth=false
     WebUI\APIKey=${local.api_key}
     WebUI\Address=*
@@ -125,7 +118,7 @@ resource "local_file" "qbit_default_config" {
 }
 
 resource "local_file" "default_config_init" {
-  filename = abspath("${local.init_scripts_dir}/01-copy-init-config")
+  filename = abspath("${local.qbit_init_scripts_dir}/01-copy-init-config")
   content  = <<-EOT
     #!/bin/bash
 
@@ -136,7 +129,7 @@ resource "local_file" "default_config_init" {
 }
 
 resource "local_file" "init_preferences" {
-  filename = abspath("${local.init_scripts_dir}/02-set-preferences")
+  filename = abspath("${local.qbit_init_scripts_dir}/02-set-preferences")
   content  = <<-EOT
     #!/bin/bash
 
@@ -154,9 +147,9 @@ resource "local_file" "init_preferences" {
       "save_path_changed_tmm_enabled":true,
       "category_changed_tmm_enabled":true,
       "use_category_paths_in_manual_mode":true,
-      "save_path":"/downloads",
+      "save_path":"/data/torrents",
       "temp_path_enabled":false,
-      "temp_path":"/downloads/incomplete",
+      "temp_path":"/data/torrents/incomplete",
       "listen_port":6881,
       "upnp":false,
       "max_connec":500,
@@ -198,7 +191,7 @@ resource "docker_container" "qbittorrent" {
   restart = "unless-stopped"
 
   depends_on = [
-    local_file.torrents_dir,
+    local_file.media_folder,
     local_file.qbit_default_config,
     local_file.password_config,
     local_file.init_preferences
@@ -214,19 +207,19 @@ resource "docker_container" "qbittorrent" {
 
   volumes {
     host_path      = local_file.qbit_default_config.filename
-    container_path = "/default/qBittorrent.conf"
+    container_path = "/defaults/qBittorrent.conf"
     read_only      = true
   }
 
   volumes {
-    host_path      = local.init_scripts_dir
+    host_path      = local.qbit_init_scripts_dir
     container_path = "/custom-cont-init.d/"
     # read_only = true
   }
 
   volumes {
     host_path      = local.torrents_dir
-    container_path = "/downloads"
+    container_path = "/data/torrents"
   }
 
   labels {
@@ -260,10 +253,10 @@ resource "docker_container" "qbittorrent" {
   }
 
 
-  env = [
+  env = concat([
     "WEBUI_PORT=80",
     "QBITTORRENT_WEBUI_PASSWORD=${var.webui_password}",
-  ]
+  ], local.arr_permission)
 
   networks_advanced {
     name         = var.network_name

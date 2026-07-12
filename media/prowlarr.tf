@@ -26,6 +26,7 @@ resource "local_file" "prowlarr_config" {
     <UpdateMechanism>Docker</UpdateMechanism>
   </Config>
   EOT
+  file_permission = "0777"
 }
 
 resource "docker_container" "prowlarr" {
@@ -85,10 +86,10 @@ resource "docker_container" "prowlarr" {
     value = "websecure"
   }
 
-  env = [
+  env = concat([
     "PROWLARR__AUTH__APIKEY=${local.api_key}",
     "PROWLARR__SERVER__PORT=80",
-  ]
+  ], local.arr_permission)
 
   networks_advanced {
     name         = var.network_name

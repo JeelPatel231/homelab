@@ -28,6 +28,29 @@ resource "local_file" "radarr_anime_config" {
   EOT
 }
 
+locals {
+  radarr_init_scripts_dir = abspath("${path.module}/radarr_init_scripts/")
+}
+
+resource "local_file" "create_movies_folder" {
+  filename = abspath("${local.radarr_init_scripts_dir}/01-create-movies-folder")
+  content  = <<-EOT
+    #!/bin/bash
+    mkdir -p /data/movies
+    chown -R 1000:1000 /data/movies
+    echo "Created Movies folder!"
+  EOT
+}
+
+resource "local_file" "radarr_copy_defaults" {
+  filename = abspath("${local.radarr_init_scripts_dir}/02-copy-defaults")
+  content  = <<-EOT
+    #!/bin/bash
+    cp /defaults/config.xml /config/
+    echo "Defualts Copied"
+  EOT
+}
+
 resource "docker_container" "radarr_anime" {
   name     = "radarr_anime"
   hostname = "radarr-anime"
@@ -35,15 +58,29 @@ resource "docker_container" "radarr_anime" {
 
   restart = "unless-stopped"
 
-  depends_on = [ local_file.media_folders ]
+  depends_on = [ 
+    local_file.radarr_anime_config,
+    local_file.radarr_copy_defaults,
+    local_file.media_folder
+  ]
 
   lifecycle {
-    replace_triggered_by = [ local_file.radarr_anime_config ]
+    replace_triggered_by = [ 
+      local_file.radarr_anime_config,
+      local_file.radarr_copy_defaults,
+      local_file.radarr_anime_config
+    ]
+  }
+
+  volumes {
+    host_path      = local.radarr_init_scripts_dir
+    container_path = "/custom-cont-init.d/"
+    # read_only = true
   }
 
   volumes {
     host_path      = local_file.radarr_anime_config.filename
-    container_path = "/config/config.xml"
+    container_path = "/defaults/config.xml"
     read_only = true
   }
 
@@ -83,10 +120,10 @@ resource "docker_container" "radarr_anime" {
   }
 
 
-  env = [
+  env = concat([
     "RADARR__AUTH__APIKEY=${local.api_key}",
     "RADARR__SERVER__PORT=80",
-  ]
+  ], local.arr_permission)
 
   networks_advanced {
     name         = var.network_name
