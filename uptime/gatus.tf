@@ -99,6 +99,13 @@ resource "local_file" "gatus_config" {
           - "[STATUS] == 200"
           - "[RESPONSE_TIME] < 100"
 
+      - name: "FlareSolverr"
+        group: arr
+        url: "http://flaresolverr/health"
+        conditions:
+          - "[STATUS] == 200"
+          - "[RESPONSE_TIME] < 100"
+
       - name: "qBittorrent"
         group: arr
         url: "http://qbittorrent/api/v2/app/webapiVersion"

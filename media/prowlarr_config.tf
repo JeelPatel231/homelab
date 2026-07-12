@@ -1,3 +1,31 @@
+resource "prowlarr_tag" "flaresolverr" {
+  label = "flaresolverr"
+
+  depends_on = [
+    terraform_data.wait_for_prowlarr,
+    docker_container.flaresolverr,
+    # TODO: add wait for flaresolverr here
+  ]
+  lifecycle {
+    replace_triggered_by = [docker_container.prowlarr]
+  }
+}
+
+resource "prowlarr_indexer_proxy_flaresolverr" "flaresolverr" {
+  host = "http://flaresolverr"
+  name = "Flaresolverr"
+  tags = [ prowlarr_tag.flaresolverr.id ]
+  request_timeout = 180
+
+  depends_on = [
+    terraform_data.wait_for_prowlarr,
+  ]
+  lifecycle {
+    replace_triggered_by = [docker_container.prowlarr]
+  }
+}
+
+
 resource "prowlarr_application_sonarr" "sonarr_anime" {
   name                  = "Sonarr [Anime]"
   sync_level            = "fullSync"

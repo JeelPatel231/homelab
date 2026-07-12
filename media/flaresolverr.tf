@@ -18,12 +18,15 @@ resource "docker_container" "flaresolverr" {
     "LOG_LEVEL=info",
     "LOG_HTML=false",
     "CAPTCHA_SOLVER=none",
+    "PORT=80",
   ]
 
   labels {
     label = "traefik.enable"
     value = "true"
   }
+
+  # TODO: add label to let traefik know its running on 80 and not the default exposed port
 
   labels {
     label = "traefik.http.routers.flaresolverr.rule"
