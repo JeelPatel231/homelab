@@ -47,6 +47,7 @@ resource "local_file" "radarr_copy_defaults" {
   content  = <<-EOT
     #!/bin/bash
     cp /defaults/config.xml /config/
+    chown -R 1000:1000 /config/
     echo "Defualts Copied"
   EOT
 }
@@ -68,7 +69,7 @@ resource "docker_container" "radarr_anime" {
     replace_triggered_by = [ 
       local_file.radarr_anime_config,
       local_file.radarr_copy_defaults,
-      local_file.radarr_anime_config
+      local_file.media_folder,
     ]
   }
 

@@ -47,6 +47,7 @@ resource "local_file" "sonarr_copy_defaults" {
   content  = <<-EOT
     #!/bin/bash
     cp /defaults/config.xml /config/
+    chown -R 1000:1000 /config/
     echo "Defualts Copied"
   EOT
 }
