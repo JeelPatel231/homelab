@@ -15,7 +15,7 @@ resource "docker_container" "copyparty" {
   name  = "copyparty"
   image = docker_image.copyparty.image_id
 
-  depends_on = [ local_file.media_folders ]
+  depends_on = [ local_file.media_folder ]
 
   restart = "unless-stopped"
 
