@@ -10,13 +10,13 @@ resource "terraform_data" "wait_for_sonarr_anime" {
   }
 
   provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
+    interpreter = ["/bin/sh", "-c"]
 
     command = <<-EOT
       timeout=${local.health_timeout}
       elapsed=0
 
-      until curl -fs http://sonarr-anime.${var.internal_suffix}/api/v3/health -H 'X-Api-Key: ${local.api_key}' >/dev/null; do
+      until curl -fs http://sonarr-anime/api/v3/health -H 'X-Api-Key: ${local.api_key}' >/dev/null; do
         if [ $elapsed -ge $timeout ]; then
           echo "Timed out waiting for health endpoint."
           exit 1
@@ -40,13 +40,13 @@ resource "terraform_data" "wait_for_radarr_anime" {
   }
 
   provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
+    interpreter = ["/bin/sh", "-c"]
 
     command = <<-EOT
       timeout=${local.health_timeout}
       elapsed=0
 
-      until curl -fs http://radarr-anime.${var.internal_suffix}/api/v3/health -H 'X-Api-Key: ${local.api_key}' >/dev/null; do
+      until curl -fs http://radarr-anime/api/v3/health -H 'X-Api-Key: ${local.api_key}' >/dev/null; do
         if [ $elapsed -ge $timeout ]; then
           echo "Timed out waiting for health endpoint."
           exit 1
@@ -70,13 +70,13 @@ resource "terraform_data" "wait_for_prowlarr" {
   }
 
   provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
+    interpreter = ["/bin/sh", "-c"]
 
     command = <<-EOT
       timeout=${local.health_timeout}
       elapsed=0
 
-      until curl -f -v http://prowlarr.${var.internal_suffix}/api/v1/health -H 'X-Api-Key: ${local.api_key}'; do
+      until curl -f -v http://prowlarr/api/v1/health -H 'X-Api-Key: ${local.api_key}'; do
         if [ $elapsed -ge $timeout ]; then
           echo "Timed out waiting for health endpoint."
           exit 1

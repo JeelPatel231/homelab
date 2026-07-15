@@ -35,18 +35,18 @@ provider "tailscale" {
 
 provider "sonarr" {
   // hardcoded for now.
-  url     = "http://sonarr-anime.${local.internal_suffix}"
+  url     = "http://sonarr_anime"
   api_key = var.arr_api_key
 }
 
 provider "radarr" {
   // hardcoded for now.
-  url     = "http://radarr-anime.${local.internal_suffix}"
+  url     = "http://radarr_anime"
   api_key = var.arr_api_key
 }
 
 provider "prowlarr" {
   // hardcoded for now.
-  url     = "http://prowlarr.${local.internal_suffix}"
+  url     = "http://prowlarr"
   api_key = var.arr_api_key
 }
