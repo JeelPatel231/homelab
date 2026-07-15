@@ -7,7 +7,10 @@ locals {
   docker_dns_resolver = "127.0.0.11"
 
   // TODO: in match argument in docker_suffix, it uses regex and we should escape the '.' 
-  coredns_corefile = <<-EOT
+}
+
+resource "local_file" "corefile" {
+  content = <<-EOT
     ${var.docker_suffix} {
         template IN A {
             answer "{{ .Name }} 60 IN A ${local.traefik_ip}"
@@ -31,6 +34,7 @@ locals {
       forward . ${local.pihole_ip}
     }
   EOT
+  filename = abspath("${path.module}/Corefile")
 }
 
 resource "local_file" "unbound_conf" {
@@ -57,9 +61,9 @@ resource "docker_container" "coredns" {
     "53",
   ]
 
-  upload {
-    content = local.coredns_corefile
-    file    = "/etc/coredns/Corefile"
+  volumes {
+    host_path = local_file.corefile.filename
+    container_path = "/etc/coredns/Corefile"
   }
 
   networks_advanced {

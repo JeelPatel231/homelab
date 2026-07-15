@@ -1,6 +1,10 @@
 locals {
   router_ip   = cidrhost(var.module_subnet, 0)
-  init_script = <<-EOT
+}
+
+resource "local_file" "ts_init_script" {
+  filename = abspath("${path.module}/init.sh")
+  content = <<-EOT
   #!/bin/sh
 
   # Apply iptables rules at runtime
@@ -81,9 +85,9 @@ resource "docker_container" "tailscale_packet_router" {
     permissions    = "rwm"
   }
 
-  upload {
-    content = local.init_script
-    file    = "/init.sh"
+  volumes {
+    host_path = local_file.ts_init_script.filename
+    container_path = "/init.sh"
   }
 
   # we persist state so when container can reauth as the same instance
