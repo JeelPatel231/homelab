@@ -15,14 +15,3 @@ locals {
 data "docker_network" "tailscale_docker_net" {
   name = "tailscale-docker-terraform"
 }
-
-# resource "docker_network" "tailscale_docker_net" {
-#   name   = "tailscale-docker-terraform" # TODO: change the name
-#   driver = "bridge"
-# 
-#   ipam_config {
-#     subnet   = var.base_cidr
-#     ip_range = var.base_cidr
-#     gateway  = cidrhost(var.base_cidr, 1) // make first ip of the subnet range the gateway ip
-#   }
-# }
