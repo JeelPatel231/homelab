@@ -36,8 +36,17 @@ resource "tailscale_acl" "policy" {
         "src": ["autogroup:member"],
         "dst": ["tag:router"],
         "ip":  ["*"],
-      }         
-    ]
+      }
+    ],
+    nodeAttrs: [
+      {
+        // Funnel policy, which lets tailnet members control Funnel
+        // for their own devices.
+        // Learn more at https://tailscale.com/kb/1223/tailscale-funnel/
+        target: ["autogroup:member"],
+        attr:   ["funnel"],
+      },
+    ],
   })
 
   reset_acl_on_destroy = true
