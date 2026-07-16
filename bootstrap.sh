@@ -24,7 +24,7 @@ SOCKET_PATH=$(
 docker run --rm -it \
   --network tailscale-docker-terraform \
   -v "$PWD:$PWD" \
-  -v $SOCKET_PATH:/var/run/docker.sock \
+  -v $SOCKET_PATH:$SOCKET_PATH \
   -w $PWD \
   $IMAGE_NAME \
   $@
