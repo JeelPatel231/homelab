@@ -6,10 +6,6 @@ variable "docker_suffix" {
   type = string
 }
 
-variable "internal_suffix" {
-  type = string
-}
-
 variable "module_subnet" {
   type = string
 }

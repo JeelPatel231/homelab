@@ -65,7 +65,6 @@ module "media" {
   network_name    = data.docker_network.tailscale_docker_net.name
   media_dir       = "${local.workdir}/media/"
   docker_suffix   = local.docker_suffix
-  internal_suffix = local.internal_suffix
   webui_password  = var.qbit_web_password
   api_key         = var.arr_api_key
 }
