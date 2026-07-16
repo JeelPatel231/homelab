@@ -23,3 +23,12 @@ variable "webui_password" {
   type = string
   # sensitive = true
 }
+
+variable "jellyfin_admin_username" {
+  type = string
+}
+
+variable "jellyfin_admin_password" {
+  type      = string
+  sensitive = true
+}

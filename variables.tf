@@ -70,9 +70,20 @@ variable "arr_api_key" {
 }
 
 variable "qbit_web_password" {
-  type = string
+  type      = string
   sensitive = true
-  default = "adminadmin"
+  default   = "adminadmin"
+}
+
+variable "jellyfin_admin_username" {
+  type    = string
+  default = "admin"
+}
+
+variable "jellyfin_admin_password" {
+  type      = string
+  sensitive = true
+  default   = "adminadmin"
 }
 
 variable "overwrite_tailnet_acl" {
