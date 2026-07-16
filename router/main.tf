@@ -3,7 +3,7 @@ locals {
 }
 
 resource "local_file" "ts_init_script" {
-  filename = abspath("${path.module}/init.sh")
+  filename = abspath("${path.module}/generated/init.sh")
   content = <<-EOT
   #!/bin/sh
 

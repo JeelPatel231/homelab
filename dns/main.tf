@@ -34,7 +34,7 @@ resource "local_file" "corefile" {
       forward . ${local.pihole_ip}
     }
   EOT
-  filename = abspath("${path.module}/Corefile")
+  filename = abspath("${path.module}/generated/Corefile")
 }
 
 resource "local_file" "unbound_conf" {

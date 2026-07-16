@@ -1,6 +1,6 @@
 locals {
   gatus_ip = cidrhost(var.module_subnet, 0)
-  config_dir = "${path.module}/config/"
+  config_dir = "${path.module}/generated/config/"
   hostname = "gatus"
   docker_dns = "127.0.0.11"
 }

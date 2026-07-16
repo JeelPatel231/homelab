@@ -8,7 +8,7 @@ resource "docker_image" "sonarr" {
 }
 
 resource "local_file" "sonarr_anime_config" {
-  filename = abspath("${path.module}/configs/sonarr/config.xml")
+  filename = abspath("${path.module}/generated/configs/sonarr/config.xml")
   content = <<-EOT
   <Config>
     <BindAddress>*</BindAddress>
@@ -29,7 +29,7 @@ resource "local_file" "sonarr_anime_config" {
 }
 
 locals {
-  sonarr_init_scripts_dir = abspath("${path.module}/sonarr_init_scripts/")
+  sonarr_init_scripts_dir = abspath("${path.module}/generated/init/sonarr/")
 }
 
 resource "local_file" "create_tv_folder" {

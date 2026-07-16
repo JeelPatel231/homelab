@@ -210,6 +210,9 @@ resource "prowlarr_indexer" "tokyotosho" {
   app_profile_id  = 1
   priority        = 1
   depends_on = [ terraform_data.wait_for_prowlarr ]
+  lifecycle {
+    replace_triggered_by = [docker_container.prowlarr]
+  }
 
   fields = [
     {
@@ -245,6 +248,9 @@ resource "prowlarr_indexer" "subsplease" {
   app_profile_id  = 1
   priority        = 1
   depends_on = [ terraform_data.wait_for_prowlarr ]
+  lifecycle {
+    replace_triggered_by = [docker_container.prowlarr]
+  }
 
   fields = [
     {
@@ -273,6 +279,10 @@ resource "prowlarr_indexer" "bangumimoe" {
   app_profile_id  = 1
   priority        = 1
   depends_on = [ terraform_data.wait_for_prowlarr ]
+
+  lifecycle {
+    replace_triggered_by = [docker_container.prowlarr]
+  }
 
   fields = [
     {

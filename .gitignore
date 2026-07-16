@@ -1,5 +1,7 @@
 workdir
 
+generated/
+
 .terraform*
 *.tfstate*
 *.tfvars

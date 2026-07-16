@@ -8,7 +8,7 @@ resource "docker_image" "prowlarr" {
 }
 
 resource "local_file" "prowlarr_config" {
-  filename = abspath("${path.module}/configs/prowlarr/config.xml")
+  filename = abspath("${path.module}/generated/configs/prowlarr/config.xml")
   content  = <<-EOT
   <Config>
     <BindAddress>*</BindAddress>

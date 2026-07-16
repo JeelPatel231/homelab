@@ -8,7 +8,7 @@ resource "docker_image" "radarr" {
 }
 
 resource "local_file" "radarr_anime_config" {
-  filename = abspath("${path.module}/configs/radarr/config.xml")
+  filename = abspath("${path.module}/generated/configs/radarr/config.xml")
   content = <<-EOT
   <Config>
     <BindAddress>*</BindAddress>
@@ -29,7 +29,7 @@ resource "local_file" "radarr_anime_config" {
 }
 
 locals {
-  radarr_init_scripts_dir = abspath("${path.module}/radarr_init_scripts/")
+  radarr_init_scripts_dir = abspath("${path.module}/generated/init/radarr/")
 }
 
 resource "local_file" "create_movies_folder" {

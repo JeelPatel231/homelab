@@ -9,7 +9,7 @@ resource "docker_image" "qbittorrent" {
 
 locals {
   torrents_dir     = abspath("${var.media_dir}/torrents")
-  qbit_init_scripts_dir = abspath("${path.module}/qbit_init_scripts")
+  qbit_init_scripts_dir = abspath("${path.module}/generated/init/qbit")
 }
 
 resource "local_file" "password_config" {
@@ -76,7 +76,7 @@ resource "local_file" "password_config" {
 }
 
 resource "local_file" "qbit_default_config" {
-  filename = abspath("${path.module}/configs/qbittorrent/qBittorrent.conf")
+  filename = abspath("${path.module}/generated/configs/qbittorrent/qBittorrent.conf")
   content  = <<-EOT
     [AutoRun]
     enabled=false
