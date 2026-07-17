@@ -1,14 +1,232 @@
-data "docker_registry_image" "jellyfin" {
-  name = "lscr.io/linuxserver/jellyfin:latest"
+locals {
+  jellyfin_dockerfile = abspath("${path.module}/dockerfiles/Dockerfile.jellyfin")
+}
+
+resource "terraform_data" "jellyfin_dockerfile_hash" {
+  input = filesha1(local.jellyfin_dockerfile)
 }
 
 resource "docker_image" "jellyfin" {
-  name          = data.docker_registry_image.jellyfin.name
-  pull_triggers = [data.docker_registry_image.jellyfin.sha256_digest]
+  name = "jellyfin-custom-python"
+  
+  lifecycle {
+    replace_triggered_by = [ terraform_data.jellyfin_dockerfile_hash ]
+  }
+
+  build {
+    context = "."
+    dockerfile = local.jellyfin_dockerfile
+  }
 }
 
 locals {
-  jellyfin_config_dir = abspath("${var.media_dir}/jellyfin_config")
+  jellyfin_config_dir       = abspath("${var.media_dir}/jellyfin_config")
+  jellyfin_init_scripts_dir = abspath("${path.module}/generated/init/jellyfin/")
+  jellyfin_init_support_dir = abspath("${path.module}/generated/init-support/jellyfin/")
+
+  jellyfin_server_name             = "Jellyfin"
+  jellyfin_ui_culture              = "en-US"
+  jellyfin_metadata_country_code   = "US"
+  jellyfin_preferred_metadata_lang = "en"
+}
+
+resource "local_file" "jellyfin_setup_script" {
+  filename = abspath("${local.jellyfin_init_scripts_dir}/01-setup-jellyfin")
+  content  = <<-EOT
+    #!/bin/bash
+    (
+      python3 /jellyfin-init-support/setup.py
+    ) &
+    disown
+  EOT
+}
+
+resource "local_file" "jellyfin_setup_py" {
+  filename = abspath("${local.jellyfin_init_support_dir}/setup.py")
+  content  = <<-EOT
+    import json
+    import os
+    import sys
+    import time
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    BASE_URL = "http://localhost:8096"
+    AUTH_HEADER = 'MediaBrowser Client="Terraform-Init", Device="Terraform-Init", DeviceId="jellyfin-init-script", Version="1.0.0"'
+    LOG_PATH = "/tmp/jellyfin-init.log"
+
+    TYPE_OPTIONS = {
+        "movies": [
+            {
+                "Type": "Movie",
+                "MetadataFetchers": ["TheMovieDb"],
+                "MetadataFetcherOrder": ["TheMovieDb"],
+                "ImageFetchers": ["TheMovieDb"],
+                "ImageFetcherOrder": ["TheMovieDb"],
+            },
+        ],
+        "tvshows": [
+            {
+                "Type": type_name,
+                "MetadataFetchers": ["TheMovieDb"],
+                "MetadataFetcherOrder": ["TheMovieDb"],
+                "ImageFetchers": ["TheMovieDb"],
+                "ImageFetcherOrder": ["TheMovieDb"],
+            }
+            for type_name in ("Series", "Season", "Episode")
+        ],
+    }
+
+
+    def log(message):
+        print('[jellyfin-init]', message)
+        # with open(LOG_PATH, "a") as f:
+        #     f.write(f"[jellyfin-init] {message}\n")
+
+
+    def request(method, path, headers=None, body=None):
+        url = BASE_URL + path
+        hdrs = {"Authorization": AUTH_HEADER}
+        if headers:
+            hdrs.update(headers)
+
+        data = None
+        if body is not None:
+            data = json.dumps(body).encode("utf-8")
+            hdrs["Content-Type"] = "application/json"
+
+        req = urllib.request.Request(url, data=data, headers=hdrs, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                status = resp.status
+                raw = resp.read()
+        except urllib.error.HTTPError as e:
+            status = e.code
+            raw = e.read()
+        except urllib.error.URLError as e:
+            return None, str(e)
+
+        text = raw.decode("utf-8", errors="replace")
+        try:
+            parsed = json.loads(text) if text else None
+        except ValueError:
+            parsed = None
+        return status, parsed if parsed is not None else text
+
+
+    def log_step(label, status, body):
+        log(f"{label} -> HTTP {status}")
+        if status is None or status >= 400:
+            log(f"{label} response: {body}")
+
+
+    def wait_for_api():
+        log("waiting for API...")
+        while True:
+            status, body = request("GET", "/System/Info/Public")
+            if status == 200 and isinstance(body, dict):
+                log("API is up")
+                return body
+            time.sleep(2)
+
+
+    def ensure_library(existing_names, authed_headers, name, collection_type, path):
+        if name in existing_names:
+            log(f"library '{name}' already exists, skipping")
+            return
+
+        log(f"creating library '{name}'")
+        options = {
+            "LibraryOptions": {
+                "Enabled": True,
+                "EnableRealtimeMonitor": True,
+                "EnableInternetProviders": True,
+                "PathInfos": [{"Path": path}],
+                "PreferredMetadataLanguage": "${local.jellyfin_preferred_metadata_lang}",
+                "MetadataCountryCode": "${local.jellyfin_metadata_country_code}",
+                "TypeOptions": TYPE_OPTIONS[collection_type],
+            }
+        }
+        qs = urllib.parse.urlencode(
+            {"name": name, "collectionType": collection_type, "refreshLibrary": "false"}
+        )
+        status, body = request(
+            "POST", f"/Library/VirtualFolders?{qs}", headers=authed_headers, body=options
+        )
+        log_step(f"Library/VirtualFolders ({name})", status, body)
+
+
+    def main():
+        admin_username = os.environ["JELLYFIN_ADMIN_USERNAME"]
+        admin_password = os.environ["JELLYFIN_ADMIN_PASSWORD"]
+
+        public_info = wait_for_api()
+
+        if not public_info.get("StartupWizardCompleted", False):
+            log("wizard not completed, running it")
+
+            status, body = request(
+                "POST",
+                "/Startup/Configuration",
+                body={
+                    "UICulture": "${local.jellyfin_ui_culture}",
+                    "MetadataCountryCode": "${local.jellyfin_metadata_country_code}",
+                    "PreferredMetadataLanguage": "${local.jellyfin_preferred_metadata_lang}",
+                    "ServerName": "${local.jellyfin_server_name}",
+                },
+            )
+            log_step("Startup/Configuration", status, body)
+
+            status, body = request("GET", "/Startup/User")
+            log_step("Startup/User (GET)", status, body)
+
+            status, body = request(
+                "POST",
+                "/Startup/User",
+                body={"Name": admin_username, "Password": admin_password},
+            )
+            log_step("Startup/User (POST)", status, body)
+
+            if status is None or status >= 400:
+                log("ERROR: setting admin user failed, NOT completing wizard (will retry on next restart)")
+                sys.exit(1)
+
+            status, body = request("POST", "/Startup/Complete", body={})
+            log_step("Startup/Complete", status, body)
+            log("wizard completed")
+        else:
+            log("wizard already completed, skipping")
+
+        status, body = request(
+            "POST",
+            "/Users/AuthenticateByName",
+            body={"Username": admin_username, "Pw": admin_password},
+        )
+        log_step("AuthenticateByName", status, body)
+
+        token = body.get("AccessToken") if isinstance(body, dict) else None
+        if not token:
+            log("ERROR: failed to authenticate, aborting library setup")
+            sys.exit(1)
+
+        authed_headers = {"Authorization": f'{AUTH_HEADER}, Token="{token}"'}
+
+        status, existing = request("GET", "/Library/VirtualFolders", headers=authed_headers)
+        existing_names = {lib.get("Name") for lib in existing} if isinstance(existing, list) else set()
+
+        ensure_library(existing_names, authed_headers, "Movies", "movies", "/data/movies")
+        ensure_library(existing_names, authed_headers, "TV Shows", "tvshows", "/data/tv")
+
+        status, body = request("POST", "/Library/Refresh", headers=authed_headers, body={})
+        log_step("Library/Refresh", status, body)
+
+        log("done")
+
+
+    if __name__ == "__main__":
+        main()
+  EOT
 }
 
 resource "docker_container" "jellyfin" {
@@ -18,7 +236,22 @@ resource "docker_container" "jellyfin" {
 
   restart = "unless-stopped"
 
-  depends_on = [local_file.media_folder]
+  depends_on = [local_file.media_folder, local_file.jellyfin_setup_script, local_file.jellyfin_setup_py]
+
+  lifecycle {
+    replace_triggered_by = [local_file.jellyfin_setup_script, local_file.jellyfin_setup_py]
+  }
+
+  volumes {
+    host_path      = local.jellyfin_init_scripts_dir
+    container_path = "/custom-cont-init.d/"
+  }
+
+  volumes {
+    host_path      = local.jellyfin_init_support_dir
+    container_path = "/jellyfin-init-support/"
+    read_only      = true
+  }
 
   volumes {
     host_path      = local.jellyfin_config_dir
@@ -61,254 +294,13 @@ resource "docker_container" "jellyfin" {
     value = "websecure"
   }
 
-  env = local.arr_permission
+  env = concat([
+    "JELLYFIN_ADMIN_USERNAME=${var.jellyfin_admin_username}",
+    "JELLYFIN_ADMIN_PASSWORD=${var.jellyfin_admin_password}",
+  ], local.arr_permission)
 
   networks_advanced {
     name         = var.network_name
     ipv4_address = local.jellyfin_ip
   }
-}
-
-locals {
-  jellyfin_url = "http://jellyfin:8096"
-
-  jellyfin_server_name             = "Jellyfin"
-  jellyfin_ui_culture              = "en-US"
-  jellyfin_metadata_country_code   = "US"
-  jellyfin_preferred_metadata_lang = "en"
-
-  # IMPORTANT: keep this DeviceId static so re-applies authenticate the same "device"
-  jellyfin_base_auth_header = "MediaBrowser Client=\"Terraform\", Device=\"Terraform\", DeviceId=\"terraform-jellyfin-setup\", Version=\"1.0.0\""
-
-  jellyfin_access_token         = jsondecode(terracurl_request.jellyfin_auth.response).AccessToken
-  jellyfin_authenticated_header = "${local.jellyfin_base_auth_header}, Token=\"${local.jellyfin_access_token}\""
-
-  jellyfin_movie_type_options = [{
-    Type                 = "Movie"
-    MetadataFetchers     = ["TheMovieDb"]
-    MetadataFetcherOrder = ["TheMovieDb"]
-    ImageFetchers        = ["TheMovieDb"]
-    ImageFetcherOrder    = ["TheMovieDb"]
-  }]
-
-  jellyfin_tvshow_type_options = [
-    {
-      Type                 = "Series"
-      MetadataFetchers     = ["TheMovieDb"]
-      MetadataFetcherOrder = ["TheMovieDb"]
-      ImageFetchers        = ["TheMovieDb"]
-      ImageFetcherOrder    = ["TheMovieDb"]
-    },
-    {
-      Type                 = "Season"
-      MetadataFetchers     = ["TheMovieDb"]
-      MetadataFetcherOrder = ["TheMovieDb"]
-      ImageFetchers        = ["TheMovieDb"]
-      ImageFetcherOrder    = ["TheMovieDb"]
-    },
-    {
-      Type                 = "Episode"
-      MetadataFetchers     = ["TheMovieDb"]
-      MetadataFetcherOrder = ["TheMovieDb"]
-      ImageFetchers        = ["TheMovieDb"]
-      ImageFetcherOrder    = ["TheMovieDb"]
-    }
-  ]
-
-  jellyfin_libraries = {
-    movies = {
-      display_name    = "Movies"
-      collection_type = "movies"
-      path            = "/data/movies"
-      type_options    = local.jellyfin_movie_type_options
-    }
-    tv = {
-      display_name    = "TV Shows"
-      collection_type = "tvshows"
-      path            = "/data/tv"
-      type_options    = local.jellyfin_tvshow_type_options
-    }
-  }
-}
-
-resource "terraform_data" "wait_for_jellyfin" {
-  depends_on = [docker_container.jellyfin]
-
-  lifecycle {
-    replace_triggered_by = [docker_container.jellyfin]
-  }
-
-  provisioner "local-exec" {
-    interpreter = ["/bin/sh", "-c"]
-
-    command = <<-EOT
-      timeout=${local.health_timeout}
-      elapsed=0
-
-      until curl -fs ${local.jellyfin_url}/health >/dev/null; do
-        if [ $elapsed -ge $timeout ]; then
-          echo "Timed out waiting for health endpoint."
-          exit 1
-        fi
-
-        sleep 5
-        elapsed=$((elapsed + 5))
-      done
-
-      echo "Container is healthy."
-    EOT
-  }
-}
-
-# Step 1: Set initial server configuration
-resource "terracurl_request" "jellyfin_startup_configuration" {
-  depends_on = [terraform_data.wait_for_jellyfin]
-
-  name   = "jellyfin_startup_configuration"
-  url    = "${local.jellyfin_url}/Startup/Configuration"
-  method = "POST"
-
-  headers = {
-    "Content-Type"  = "application/json"
-    "Authorization" = local.jellyfin_base_auth_header
-  }
-
-  request_body = jsonencode({
-    UICulture                 = local.jellyfin_ui_culture
-    MetadataCountryCode       = local.jellyfin_metadata_country_code
-    PreferredMetadataLanguage = local.jellyfin_preferred_metadata_lang
-    ServerName                = local.jellyfin_server_name
-  })
-
-  response_codes = [204]
-}
-
-# Step 2: GET the startup user (note: this creates the initial user internally!)
-resource "terracurl_request" "jellyfin_get_startup_user" {
-  depends_on = [terracurl_request.jellyfin_startup_configuration]
-
-  name   = "jellyfin_get_startup_user"
-  url    = "${local.jellyfin_url}/Startup/User"
-  method = "GET"
-
-  headers = {
-    "Content-Type"  = "application/json"
-    "Authorization" = local.jellyfin_base_auth_header
-  }
-
-  response_codes = [200]
-}
-
-# Step 3: Set the admin username and password
-resource "terracurl_request" "jellyfin_startup_user" {
-  depends_on = [terracurl_request.jellyfin_get_startup_user]
-
-  name   = "jellyfin_startup_user"
-  url    = "${local.jellyfin_url}/Startup/User"
-  method = "POST"
-
-  headers = {
-    "Content-Type"  = "application/json"
-    "Authorization" = local.jellyfin_base_auth_header
-  }
-
-  request_body = jsonencode({
-    Name     = var.jellyfin_admin_username
-    Password = var.jellyfin_admin_password
-  })
-
-  response_codes = [204]
-}
-
-# Step 4: Complete the startup wizard
-resource "terracurl_request" "jellyfin_complete_wizard" {
-  depends_on = [terracurl_request.jellyfin_startup_user]
-
-  name   = "jellyfin_complete_wizard"
-  url    = "${local.jellyfin_url}/Startup/Complete"
-  method = "POST"
-
-  headers = {
-    "Content-Type"  = "application/json"
-    "Authorization" = local.jellyfin_base_auth_header
-  }
-
-  request_body = "{}"
-
-  response_codes = [204]
-}
-
-# Authenticate to get an access token for the post-wizard calls below
-resource "terracurl_request" "jellyfin_auth" {
-  depends_on = [terracurl_request.jellyfin_complete_wizard]
-
-  name   = "jellyfin_auth"
-  url    = "${local.jellyfin_url}/Users/AuthenticateByName"
-  method = "POST"
-
-  headers = {
-    "Content-Type"  = "application/json"
-    "Authorization" = local.jellyfin_base_auth_header
-  }
-
-  request_body = jsonencode({
-    Username = var.jellyfin_admin_username
-    Pw       = var.jellyfin_admin_password
-  })
-
-  response_codes = [200]
-}
-
-# Create the Movies/TV libraries pointed at the folders radarr_anime/sonarr_anime manage
-resource "terracurl_request" "jellyfin_libraries" {
-  depends_on = [terracurl_request.jellyfin_auth]
-  for_each   = local.jellyfin_libraries
-
-  name   = "jellyfin_library_${each.key}"
-  method = "POST"
-  url    = "${local.jellyfin_url}/Library/VirtualFolders?name=${urlencode(each.value.display_name)}&collectionType=${each.value.collection_type}&refreshLibrary=false"
-
-  headers = {
-    "Content-Type"  = "application/json"
-    "Authorization" = local.jellyfin_authenticated_header
-  }
-
-  request_body = jsonencode({
-    LibraryOptions = {
-      Enabled                   = true
-      EnableRealtimeMonitor     = true
-      EnableInternetProviders   = true
-      PathInfos                 = [{ Path = each.value.path }]
-      PreferredMetadataLanguage = local.jellyfin_preferred_metadata_lang
-      MetadataCountryCode       = local.jellyfin_metadata_country_code
-      TypeOptions               = each.value.type_options
-    }
-  })
-
-  response_codes = [204]
-
-  destroy_method = "DELETE"
-  destroy_url    = "${local.jellyfin_url}/Library/VirtualFolders?name=${urlencode(each.value.display_name)}&refreshLibrary=false"
-  destroy_headers = {
-    "Content-Type"  = "application/json"
-    "Authorization" = local.jellyfin_authenticated_header
-  }
-  destroy_response_codes = [204]
-}
-
-# Kick off an initial scan so the libraries aren't empty until the next scheduled scan
-resource "terracurl_request" "jellyfin_scan_libraries" {
-  depends_on = [terracurl_request.jellyfin_libraries]
-
-  name   = "jellyfin_scan_libraries"
-  url    = "${local.jellyfin_url}/Library/Refresh"
-  method = "POST"
-
-  headers = {
-    "Content-Type"  = "application/json"
-    "Authorization" = local.jellyfin_authenticated_header
-  }
-
-  request_body   = "{}"
-  response_codes = [204]
 }

@@ -15,11 +15,5 @@ terraform {
     prowlarr = {
       source = "devopsarr/prowlarr"
     }
-    terracurl = {
-      source = "devops-rob/terracurl"
-    }
-    time = {
-      source = "hashicorp/time"
-    }
   }
 }
