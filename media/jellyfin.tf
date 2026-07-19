@@ -20,7 +20,6 @@ resource "docker_image" "jellyfin" {
 }
 
 locals {
-  jellyfin_config_dir       = abspath("${var.media_dir}/jellyfin_config")
   jellyfin_init_scripts_dir = abspath("${path.module}/generated/init/jellyfin/")
   jellyfin_init_support_dir = abspath("${path.module}/generated/init-support/jellyfin/")
 
@@ -251,11 +250,6 @@ resource "docker_container" "jellyfin" {
     host_path      = local.jellyfin_init_support_dir
     container_path = "/jellyfin-init-support/"
     read_only      = true
-  }
-
-  volumes {
-    host_path      = local.jellyfin_config_dir
-    container_path = "/config"
   }
 
   volumes {
