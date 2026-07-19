@@ -96,15 +96,30 @@ resource "local_file" "jellyfin_setup_py" {
             hdrs["Content-Type"] = "application/json"
 
         req = urllib.request.Request(url, data=data, headers=hdrs, method=method)
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                status = resp.status
-                raw = resp.read()
-        except urllib.error.HTTPError as e:
-            status = e.code
-            raw = e.read()
-        except urllib.error.URLError as e:
-            return None, str(e)
+        while True:
+            try:
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    status = resp.status                    
+                    raw = resp.read()
+                    break
+                
+            except urllib.error.HTTPError as e:
+                status = e.code
+                if status == 503:
+                    print("Service Unavailable, Retrying!")
+                    time.sleep(2)
+                    continue
+
+                raw = e.read()
+                break
+
+            except urllib.error.URLError as e:
+                if isinstance(e.reason, ConnectionRefusedError) or getattr(e.reason, "errno", None) == 111:
+                    log("Connection refused, retrying...")
+                    time.sleep(2)
+                    continue
+                
+                return None, str(e)
 
         text = raw.decode("utf-8", errors="replace")
         try:
@@ -291,6 +306,7 @@ resource "docker_container" "jellyfin" {
   env = concat([
     "JELLYFIN_ADMIN_USERNAME=${var.jellyfin_admin_username}",
     "JELLYFIN_ADMIN_PASSWORD=${var.jellyfin_admin_password}",
+    "JELLYFIN_FFMPEG=/bin/false",
   ], local.arr_permission)
 
   networks_advanced {
