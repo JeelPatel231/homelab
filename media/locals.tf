@@ -1,5 +1,6 @@
 locals {
   api_key = var.api_key
+  qbit_api_key = "qbt_${substr(var.api_key, 4, -1)}"
   flaresolverr_ip = cidrhost(var.module_subnet, 2)
   prowlarr_ip     = cidrhost(var.module_subnet, 3)
   radarr_anime_ip = cidrhost(var.module_subnet, 5)

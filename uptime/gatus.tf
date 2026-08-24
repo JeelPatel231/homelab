@@ -1,4 +1,5 @@
 locals {
+  qbit_api_key = "qbt_${substr(var.arr_api_key, 4, -1)}"
   gatus_ip = cidrhost(var.module_subnet, 0)
   config_dir = "${path.module}/generated/config/"
   hostname = "gatus"
@@ -110,7 +111,7 @@ resource "local_file" "gatus_config" {
         group: arr
         url: "http://qbittorrent/api/v2/app/webapiVersion"
         headers:
-          Authorization: "Bearer ${var.arr_api_key}"
+          Authorization: "Bearer ${local.qbit_api_key}"
         conditions:
           - "[STATUS] == 200"
           - "[RESPONSE_TIME] < 100"

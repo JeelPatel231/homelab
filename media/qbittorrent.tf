@@ -110,7 +110,7 @@ resource "local_file" "qbit_default_config" {
     Downloads\SavePath=/data/torrents/
     Downloads\TempPath=/data/torrents/incomplete/
     WebUI\LocalHostAuth=false
-    WebUI\APIKey=${local.api_key}
+    WebUI\APIKey=${local.qbit_api_key}
     WebUI\Address=*
     WebUI\Port=80
     WebUI\ServerDomains=*
