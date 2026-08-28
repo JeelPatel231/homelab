@@ -1,6 +1,6 @@
 
 data "docker_registry_image" "flaresolverr" {
-  name = "flaresolverr/flaresolverr:latest"
+  name = "flaresolverr/flaresolverr:latest@sha256:139dfee1c6f89249c8d665d1333a42e8ec74ec0a86bc6bb1c8461e10d3a66a47"
 }
 
 resource "docker_image" "flaresolverr" {

@@ -1,5 +1,5 @@
 data "docker_registry_image" "prowlarr" {
-  name = "ghcr.io/hotio/prowlarr:release-2.0.5.5160"
+  name = "ghcr.io/hotio/prowlarr:release-2.0.5.5160@sha256:abb923b9533d19636f055775f6500fc4fb5d50563adfa3b4e72685ae5adf4cdc"
 }
 
 resource "docker_image" "prowlarr" {

@@ -1,5 +1,5 @@
 data "docker_registry_image" "qbittorrent" {
-  name = "lscr.io/linuxserver/qbittorrent:latest"
+  name = "lscr.io/linuxserver/qbittorrent:latest@sha256:304b19cf94bf4fda534e0b086cab9c5f1a9e139a8180c05c0ad7d2ba1526fa99"
 }
 
 resource "docker_image" "qbittorrent" {

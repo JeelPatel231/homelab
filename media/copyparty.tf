@@ -1,5 +1,5 @@
 data "docker_registry_image" "copyparty" {
-  name = "copyparty/ac:latest"
+  name = "copyparty/ac:latest@sha256:a885633e42f7395331ab709c1310bd21e79617b13dfd41c6e3f56910b6a8d2f0"
 }
 
 resource "docker_image" "copyparty" {
