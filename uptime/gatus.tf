@@ -15,7 +15,11 @@ resource "local_file" "gatus_config" {
       path: /db/data.db
 
     endpoints:
-      # # only needed if the host is outside of tailnet.
+      # ============================================================
+      # DNS
+      # ============================================================
+
+      # Only needed if the host is outside of tailnet.
       # - name: host-dns-resolution
       #   group: dns
       #   url: ${local.docker_dns}
@@ -26,7 +30,7 @@ resource "local_file" "gatus_config" {
       #   conditions:
       #     - "[DNS_RCODE] == NOERROR"
       #     - "[BODY] == pat(*.*.*.*)"
-      #     - "[RESPONSE_TIME] < 200" 
+      #     - "[RESPONSE_TIME] < 200"
 
       - name: docker-dns-resolution
         group: dns
@@ -38,9 +42,8 @@ resource "local_file" "gatus_config" {
         conditions:
           - "[DNS_RCODE] == NOERROR"
           - "[BODY] == ${var.traefik_ip}"
-          - "[RESPONSE_TIME] < 200" 
+          - "[RESPONSE_TIME] < 200"
 
-      
       - name: internal-dns-resolution
         group: dns
         url: "${var.coredns_ip}"
@@ -51,7 +54,7 @@ resource "local_file" "gatus_config" {
         conditions:
           - "[DNS_RCODE] == NOERROR"
           - "[BODY] == ${local.gatus_ip}"
-          - "[RESPONSE_TIME] < 200" 
+          - "[RESPONSE_TIME] < 200"
 
       - name: pihole-dns-resolution
         group: dns
@@ -64,6 +67,18 @@ resource "local_file" "gatus_config" {
           - "[DNS_RCODE] == NOERROR"
           - "[BODY] == pat(*.*.*.*)"
           - "[RESPONSE_TIME] < 500"
+      
+      # Commented out as unbound is upstream for pihole.
+      # - name: Unbound
+      #   group: dns
+      #   url: "tcp://unbound:53"
+      #   interval: 2m
+      #   conditions:
+      #     - "[CONNECTED] == true"
+
+      # ============================================================
+      # Media
+      # ============================================================
 
       - name: "Immich"
         group: media
@@ -71,7 +86,18 @@ resource "local_file" "gatus_config" {
         conditions:
           - "[STATUS] == 200"
           - "[BODY].res == pong"
-          - "[RESPONSE_TIME] < 100"
+          - "[RESPONSE_TIME] < 200"
+
+      - name: "Jellyfin"
+        group: media
+        url: "http://jellyfin:8096/health"
+        conditions:
+          - "[STATUS] == 200"
+          - "[RESPONSE_TIME] < 200"
+
+      # ============================================================
+      # ARR
+      # ============================================================
 
       - name: "Prowlarr"
         group: arr
@@ -80,7 +106,7 @@ resource "local_file" "gatus_config" {
           X-API-Key: "${var.arr_api_key}"
         conditions:
           - "[STATUS] == 200"
-          - "[RESPONSE_TIME] < 100"
+          - "[RESPONSE_TIME] < 200"
 
       - name: "Sonarr[Anime]"
         group: arr
@@ -89,7 +115,7 @@ resource "local_file" "gatus_config" {
           X-API-Key: "${var.arr_api_key}"
         conditions:
           - "[STATUS] == 200"
-          - "[RESPONSE_TIME] < 100"
+          - "[RESPONSE_TIME] < 200"
 
       - name: "Radarr [Anime]"
         group: arr
@@ -98,14 +124,14 @@ resource "local_file" "gatus_config" {
           X-API-Key: "${var.arr_api_key}"
         conditions:
           - "[STATUS] == 200"
-          - "[RESPONSE_TIME] < 100"
+          - "[RESPONSE_TIME] < 200"
 
       - name: "FlareSolverr"
         group: arr
         url: "http://flaresolverr/health"
         conditions:
           - "[STATUS] == 200"
-          - "[RESPONSE_TIME] < 100"
+          - "[RESPONSE_TIME] < 200"
 
       - name: "qBittorrent"
         group: arr
@@ -114,7 +140,93 @@ resource "local_file" "gatus_config" {
           Authorization: "Bearer ${local.qbit_api_key}"
         conditions:
           - "[STATUS] == 200"
-          - "[RESPONSE_TIME] < 100"
+          - "[RESPONSE_TIME] < 200"
+
+      # ============================================================
+      # Documents
+      # ============================================================
+
+      - name: "Paisa"
+        group: documents
+        url: "http://paisa:7500"
+        conditions:
+          - "[STATUS] < 400"
+          - "[RESPONSE_TIME] < 200"
+
+      - name: "Paperless"
+        group: documents
+        url: "http://paperless:8000/api/"
+        conditions:
+          - "[STATUS] < 400"
+          - "[RESPONSE_TIME] < 200"
+
+      - name: "Stirling PDF"
+        group: documents
+        url: "http://stirling-pdf:8080"
+        conditions:
+          - "[STATUS] < 400"
+          - "[RESPONSE_TIME] < 200"
+
+      # ============================================================
+      # Security / Passwords
+      # ============================================================
+
+      - name: "Vaultwarden"
+        group: security
+        url: "http://vaultwarden:80/alive"
+        conditions:
+          - "[STATUS] == 200"
+          - "[RESPONSE_TIME] < 200"
+
+      # ============================================================
+      # Infrastructure
+      # ============================================================
+
+      - name: "Traefik"
+        group: infrastructure
+        url: "http://traefik:80"
+        conditions:
+          - "[STATUS] < 500"
+          - "[RESPONSE_TIME] < 200"
+
+      - name: "Immich PostgreSQL"
+        group: database
+        url: "tcp://immich_postgres:5432"
+        conditions:
+          - "[CONNECTED] == true"
+
+      - name: "Immich Redis"
+        group: database
+        url: "tcp://immich_redis:6379"
+        conditions:
+          - "[CONNECTED] == true"
+
+      - name: "Paperless Broker"
+        group: database
+        url: "tcp://paperless_broker:6379"
+        conditions:
+          - "[CONNECTED] == true"
+
+      # ============================================================
+      # Tailscale
+      # ============================================================
+
+      # Tailscale does not expose a normal HTTP health endpoint.
+      # This only verifies that the WireGuard UDP port is reachable.
+      - name: "Tailscale"
+        group: network
+        url: "udp://tailscale-router:41641"
+        conditions:
+          - "[CONNECTED] == true"
+
+      # ============================================================
+      # TODO: background services
+      # ============================================================
+
+      #   terraform-custom
+      #   rclone_fswatch
+      #   vaultwarden_backup
+
       
   EOT
   filename = abspath("${local.config_dir}/config.yaml")
