@@ -5,41 +5,41 @@ locals {
   vaultwarden_ip = cidrhost(var.module_subnet, 0)
 }
 
-# resource "docker_image" "rclone_fswatch_image" {
-#   name = "rclone_fswatch"
-#   triggers = {
-#     dockerfile = local.dockerfile_hash
-#   }
-#   build {
-#     context = "."
-#     dockerfile = local.dockerfile
-#   }
-# }
+resource "docker_image" "rclone_fswatch_image" {
+  name = "rclone_fswatch"
+  triggers = {
+    dockerfile = local.dockerfile_hash
+  }
+  build {
+    context = "."
+    dockerfile = local.dockerfile
+  }
+}
 
-# resource "docker_container" "rclone_fswatch_container" {
-#   name = "rclone_fswatch"
-#   image = docker_image.rclone_fswatch_image.image_id
-#   restart = "unless-stopped"
+resource "docker_container" "rclone_fswatch_container" {
+  name = "rclone_fswatch"
+  image = docker_image.rclone_fswatch_image.image_id
+  restart = "unless-stopped"
 
-#   volumes {
-#     host_path = var.rclone_conf_path
-#     container_path = "/rclone.conf"
-#     read_only = true
-#   }
+  volumes {
+    host_path = var.rclone_conf_path
+    container_path = "/rclone.conf"
+    read_only = true
+  }
 
-#   # this container only reads the dir and uploads to gdrive
-#   volumes {
-#     host_path = var.vaultwarden_backup_dir
-#     container_path = "/backup"
-#     read_only = true
-#   }
+  # this container only reads the dir and uploads to gdrive
+  volumes {
+    host_path = var.vaultwarden_backup_dir
+    container_path = "/backup"
+    read_only = true
+  }
 
-#   lifecycle {
-#     replace_triggered_by = [
-#       docker_image.rclone_fswatch_image
-#     ]
-#   }
-# }
+  lifecycle {
+    replace_triggered_by = [
+      docker_image.rclone_fswatch_image,
+    ]
+  }
+}
 
 data "docker_registry_image" "vaultwarden_backup" {
   name = "bruceforce/vaultwarden-backup:2.1.5"
