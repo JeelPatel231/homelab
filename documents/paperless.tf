@@ -9,12 +9,12 @@ locals {
 }
 
 data "docker_registry_image" "paperless_broker" {
-  name = "redis:8"
+  name = "redis:latest@sha256:234c902a2db49461a129e2d4aeff85b28cf20187ed274a67f6e50995fa713c7b"
 }
 
 resource "docker_image" "paperless_broker" {
   name          = data.docker_registry_image.paperless_broker.name
-  pull_triggers = [data.docker_registry_image.paperless_broker.sha256_digest]
+ pull_triggers = [data.docker_registry_image.paperless_broker.sha256_digest]
 }
 
 resource "docker_volume" "broker_data" {
@@ -39,7 +39,7 @@ resource "docker_container" "paperless_broker" {
 }
 
 data "docker_registry_image" "paperless" {
-  name = "ghcr.io/paperless-ngx/paperless-ngx:latest"
+  name = "ghcr.io/paperless-ngx/paperless-ngx:latest@sha256:6c86cad803970ea782683a8e80e7403444c5bf3cf70de63b4d3c8e87500db92f"
 }
 
 resource "docker_image" "paperless" {

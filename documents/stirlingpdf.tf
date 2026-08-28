@@ -9,7 +9,7 @@ locals {
 }
 
 data "docker_registry_image" "stirling_pdf" {
-  name = "docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest"
+  name = "docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest@sha256:7ed4d9681d18e4fbc3aa6a63647c4b5c2bcc4b75841df7c05d7e3d2320f5c9a1"
 }
 
 resource "docker_image" "stirling_pdf" {
