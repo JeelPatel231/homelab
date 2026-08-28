@@ -121,7 +121,7 @@ resource "local_file" "gatus_config" {
 }
 
 data "docker_registry_image" "gatus" {
-  name = "twinproduction/gatus:latest"
+  name = "twinproduction/gatus:latest@sha256:0009b90a11c042809f7f988c05c3f398dbf24b7498a0b7083efe3b9e8e126550"
 }
 
 resource "docker_image" "gatus" {
