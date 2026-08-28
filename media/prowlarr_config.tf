@@ -4,7 +4,7 @@ resource "prowlarr_tag" "flaresolverr" {
   depends_on = [
     terraform_data.wait_for_prowlarr,
     docker_container.flaresolverr,
-    # TODO: add wait for flaresolverr here
+    terraform_data.wait_for_flaresolverr,
   ]
   lifecycle {
     replace_triggered_by = [docker_container.prowlarr]
@@ -19,6 +19,7 @@ resource "prowlarr_indexer_proxy_flaresolverr" "flaresolverr" {
 
   depends_on = [
     terraform_data.wait_for_prowlarr,
+    terraform_data.wait_for_flaresolverr,
   ]
   lifecycle {
     replace_triggered_by = [docker_container.prowlarr]

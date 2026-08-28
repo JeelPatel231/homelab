@@ -90,3 +90,33 @@ resource "terraform_data" "wait_for_prowlarr" {
     EOT
   }
 }
+
+resource "terraform_data" "wait_for_flaresolverr" {
+  depends_on = [docker_container.flaresolverr]
+
+  lifecycle {
+    replace_triggered_by = [docker_container.flaresolverr]
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/sh", "-c"]
+
+    command = <<-EOT
+      timeout=${local.health_timeout}
+      elapsed=0
+
+      until curl -fs http://flaresolverr/health >/dev/null; do
+        if [ $elapsed -ge $timeout ]; then
+          echo "Timed out waiting for health endpoint."
+          exit 1
+        fi
+
+        sleep 5
+        elapsed=$((elapsed + 5))
+      done
+
+      echo "Container is healthy."
+    EOT
+  }
+}
+
