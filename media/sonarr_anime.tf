@@ -52,6 +52,9 @@ resource "local_file" "sonarr_copy_defaults" {
   EOT
 }
 
+resource "docker_volume" "sonarr_config" {
+  name = "sonarr_anime_config"
+}
 
 resource "docker_container" "sonarr_anime" {
   name     = "sonarr_anime"
@@ -82,6 +85,11 @@ resource "docker_container" "sonarr_anime" {
     host_path      = local.sonarr_init_scripts_dir
     container_path = "/custom-cont-init.d/"
     # read_only = true
+  }
+
+  volumes {
+    volume_name    = docker_volume.sonarr_config.name
+    container_path = "/config"
   }
 
   volumes {

@@ -52,6 +52,10 @@ resource "local_file" "radarr_copy_defaults" {
   EOT
 }
 
+resource "docker_volume" "radarr_config" {
+  name = "radarr_anime_config"
+}
+
 resource "docker_container" "radarr_anime" {
   name     = "radarr_anime"
   hostname = "radarr-anime"
@@ -83,6 +87,11 @@ resource "docker_container" "radarr_anime" {
     host_path      = local_file.radarr_anime_config.filename
     container_path = "/defaults/config.xml"
     read_only = true
+  }
+
+  volumes {
+    volume_name    = docker_volume.radarr_config.name
+    container_path = "/config"
   }
 
   volumes {
