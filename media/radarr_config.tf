@@ -20,6 +20,20 @@ resource "radarr_indexer_torrent_rss" "subsplease" {
   }
 }
 
+resource "radarr_indexer_torrent_rss" "nyaa" {
+  name                    = "Nyaa"
+  base_url                = "https://nyaa.si/?page=rss"
+  allow_zero_size         = false
+  minimum_seeders         = 1
+  priority                = 1
+
+  depends_on = [terraform_data.wait_for_radarr_anime]
+  lifecycle {
+    replace_triggered_by = [docker_container.radarr_anime]
+  }
+}
+
+
 resource "radarr_download_client_qbittorrent" "qbit_client" {
   enable                     = true
   priority                   = 1
